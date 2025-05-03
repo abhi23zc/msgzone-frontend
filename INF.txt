@@ -1,0 +1,8 @@
+Basic Fetch Request->   
+
+ const res = fetch('http://localhost:8080/health')
+    res.then((value)=>{
+      value.json().then((result)=>{
+        console.log(result)
+      })
+    })
