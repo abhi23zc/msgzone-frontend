@@ -1,11 +1,13 @@
 import Sidebar from '@/components/Sidebar'
 import React from 'react'
 
-function App() {
+function Bulksend() {
   return (
+    <div>
     <Sidebar/>
     
+  </div>
   )
 }
 
-export default App
+export default Bulksend
