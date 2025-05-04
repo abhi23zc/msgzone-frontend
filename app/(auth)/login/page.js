@@ -9,13 +9,14 @@ import { useRouter } from "next/navigation";
 import useLocalStorage from "@/hooks/useLocalstorage";
 import toast from "react-hot-toast";
 
+// eslint-disable-next-line
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userData, setuserData] = useLocalStorage("user", null)
+  const [userData, setuserData] = useLocalStorage("user", null);
 
-  const router = useRouter()
+  const router = useRouter();
 
   const URL = process.env.NEXT_PUBLIC_API_URL + "/api/v1/auth/login";
 
@@ -26,32 +27,29 @@ export default function Login() {
     body: { email, password },
   });
 
-
   useEffect(() => {
-    // console.log(user)
     if (data?.success) {
-      setUser(data?.data.user)
+      setUser(data?.data.user);
       document.cookie = `token=${data?.data.token}; path=/;`;
-      setuserData(data?.data?.user)
+      setuserData(data?.data?.user);
     }
-    if(error){
-      toast.error(error)
+    if (error) {
+      toast.error(error);
     }
-  }, [data, user, error])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, error, setUser, setuserData]);
 
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard")
+      router.replace("/dashboard");
       return;
     }
-  }, [user])
-
+  }, [user, router]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     triggerFetch();
-
-    console.log(data)
+    // console.log(data)
   };
 
   return (
@@ -104,6 +102,7 @@ export default function Login() {
           {/* Login Fields */}
           <form
             className="space-y-5 sm:space-y-6"
+            onSubmit={handleSubmit}
           >
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
@@ -147,7 +146,6 @@ export default function Login() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-
               <button
                 type="button"
                 className="text-xs sm:text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors"
@@ -155,25 +153,27 @@ export default function Login() {
                 Forgot password?
               </button>
             </div>
-            <div onClick={handleSubmit} className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-purple-600/20 transition-all flex items-center justify-center  hover:shadow-purple-600/40 focus:outline-none focus:ring-2 focus:ring-purple-500">
-              {
-                loading ? <Loading className={"border-white"} /> :
-                  <button
-
-                    type="submit"
-                    className="flex items-center justify-center "
-                  >
-                    <LogIn size={18} className="mr-2" />
-                    <span className="text-sm sm:text-base">Sign In</span>
-                  </button>
-              }
-            </div>
-
-
+            <button
+              type="submit"
+              className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-purple-600/20 transition-all flex items-center justify-center  hover:shadow-purple-600/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loading className={"border-white"} />
+              ) : (
+                <>
+                  <LogIn size={18} className="mr-2" />
+                  <span className="text-sm sm:text-base">Sign In</span>
+                </>
+              )}
+            </button>
           </form>
 
           <div className="mt-6 sm:mt-8 text-center">
-            <span className="text-slate-400 text-sm">Don't have an account?</span>{" "}
+            <span className="text-slate-400 text-sm">
+              {/* Fix: Escape apostrophe */}
+              Don&apos;t have an account?
+            </span>{" "}
             <Link
               href={"/register"}
               className="text-purple-400 hover:text-purple-300 font-medium transition-colors cursor-pointer text-sm"
