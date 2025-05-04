@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Send,
   Image,
@@ -23,11 +23,46 @@ import {
   PhoneCall
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import useLocalStorage from '@/hooks/useLocalstorage';
+import { useFetch } from '@/hooks/useFetch';
+import toast from 'react-hot-toast';
+import Loading from '@/components/Loading';
+
 
 export default function SingleSend() {
+  const URL = process.env.NEXT_PUBLIC_API_URL
+
   const [messageType, setMessageType] = useState('text');
   const [showFormatting, setShowFormatting] = useState(false);
   const [recipientOpen, setRecipientOpen] = useState(false);
+
+  const [recipientList, setRecipientList] = useState('')
+  const [messageContent, setMessageContent] = useState('')
+
+  // Hydration fix: Only render after client mounts
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const [user]  = useLocalStorage("user");
+
+  const [data, loading, error, trigger] = useFetch(
+    URL + '/api/v1/wp/send',
+    { body: { "numbers": [recipientList], "message": messageContent }, method: "POST" }
+  )
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Error while sending message")
+      console.log(error)
+    }
+    else{
+      // toast.success("Message Sent")
+      console.log(data);
+    }
+
+  }, [data, error])
 
   const MessageTypeIcon = () => {
     switch (messageType) {
@@ -39,6 +74,18 @@ export default function SingleSend() {
       default: return <Type size={18} />;
     }
   };
+  async function handleSubmit() {
+    console.log("Single Send")
+    setTimeout(() => {
+
+      trigger()
+    }, [1000])
+
+  }
+
+
+  // Only render after mount to avoid hydration errors
+  if (!mounted) return null;
 
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
@@ -59,8 +106,8 @@ export default function SingleSend() {
                 <button
                   onClick={() => setMessageType('text')}
                   className={`flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 rounded-xl border-2 transition-all text-xs sm:text-sm ${messageType === 'text'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                 >
                   <Type size={18} className="mb-1" />
@@ -70,8 +117,8 @@ export default function SingleSend() {
                 <button
                   onClick={() => setMessageType('media')}
                   className={`flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 rounded-xl border-2 transition-all text-xs sm:text-sm ${messageType === 'media'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                 >
                   <Image size={18} className="mb-1" />
@@ -81,8 +128,8 @@ export default function SingleSend() {
                 <button
                   onClick={() => setMessageType('button')}
                   className={`flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 rounded-xl border-2 transition-all text-xs sm:text-sm ${messageType === 'button'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                 >
                   <Link size={18} className="mb-1" />
@@ -92,8 +139,8 @@ export default function SingleSend() {
                 <button
                   onClick={() => setMessageType('list')}
                   className={`flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 rounded-xl border-2 transition-all text-xs sm:text-sm ${messageType === 'list'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                 >
                   <List size={18} className="mb-1" />
@@ -103,8 +150,8 @@ export default function SingleSend() {
                 <button
                   onClick={() => setMessageType('location')}
                   className={`flex flex-col items-center justify-center p-2 sm:p-3 md:p-4 rounded-xl border-2 transition-all text-xs sm:text-sm ${messageType === 'location'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                 >
                   <MapPin size={18} className="mb-1" />
@@ -126,7 +173,7 @@ export default function SingleSend() {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs sm:text-sm font-medium text-gray-900">Business Account</div>
-                        <div className="text-xs text-gray-500">+234234234</div>
+                        <div className="text-xs text-gray-500">+91{user?.whatsappNumber}</div>
                       </div>
                       <ChevronDown size={16} className="text-gray-400" />
                     </div>
@@ -139,16 +186,14 @@ export default function SingleSend() {
                     Recipient
                   </label>
                   <div className="relative">
-                    <textarea
-                      placeholder="Enter Recipients Phone Numbers +91123456789, +910012345678"
-                      className="w-full px-4 py-2 sm:py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 transition-all bg-white text-gray-900 placeholder-gray-400 shadow-sm hover:border-gray-300 resize-none"
-                      rows={1}
-                      style={{ minHeight: '70px', maxHeight: '200px', overflow: 'auto' }}
-                      onInput={e => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
+                    <input
+                      type="text"
+                      value={recipientList}
+                      onChange={(e) => setRecipientList(e.target.value)}
+                      placeholder="Enter recipient's phone number, e.g. 91123456789"
+                      className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-500 transition-all bg-white text-gray-900 placeholder-gray-400 shadow-sm hover:border-indigo-300 text-base font-medium"
                     />
+
                   </div>
                 </div>
 
@@ -273,6 +318,10 @@ export default function SingleSend() {
 
                 <div className={`relative ${showFormatting ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'} border-2 border-gray-200 focus-within:border-indigo-500 transition-all hover:border-gray-300`}>
                   <textarea
+                    onChange={(e) => {
+                      setMessageContent(e.target.value)
+                    }}
+                    value={messageContent}
                     className="w-full p-3 sm:p-4 h-28 sm:h-36 md:h-40 resize-none focus:outline-none text-gray-700 text-xs sm:text-sm"
                     placeholder="Type your message here..."
                   ></textarea>
@@ -330,14 +379,23 @@ export default function SingleSend() {
               </div>
             </div>
 
+            
+
             {/* Action Buttons */}
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+            <div onClick={handleSubmit} className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
               {/* <button className="px-4 sm:px-5 py-2 border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 font-medium transition-colors text-xs sm:text-sm">
                 Save as Draft
               </button> */}
-              <button className="px-4 sm:px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:opacity-90 font-medium transition-opacity flex items-center text-xs sm:text-sm">
+             
+              <button className="px-4 sm:px-5 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:opacity-90 font-medium transition-opacity flex items-center text-xs sm:text-sm">
+              {loading ? <Loading/> : 
+                (
+                <>
                 <Send size={16} className="mr-2" />
                 Send Message
+                </>
+                )
+              }
               </button>
             </div>
           </div>

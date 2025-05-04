@@ -11,7 +11,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [number, setNumber] = useState();
+  const [number, setNumber] = useState("");
 
   const router = useRouter();
   const URL = process.env.NEXT_PUBLIC_API_URL + '/api/v1/auth/register'
@@ -23,6 +23,7 @@ export default function Register() {
 
   useEffect(() => {
       if(data?.success){
+        toast.success("Succesfully Registered")
         router.push("/login")
       }
       if(error){

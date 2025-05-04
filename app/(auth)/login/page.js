@@ -41,7 +41,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      router.replace("/home")
+      router.replace("/dashboard")
       return;
     }
   }, [user])
@@ -157,7 +157,7 @@ export default function Login() {
             </div>
             <div onClick={handleSubmit} className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-purple-600/20 transition-all flex items-center justify-center  hover:shadow-purple-600/40 focus:outline-none focus:ring-2 focus:ring-purple-500">
               {
-                loading ? <Loading /> :
+                loading ? <Loading className={"border-white"} /> :
                   <button
 
                     type="submit"
