@@ -47,12 +47,11 @@ export default function Dashboard() {
       setTotalMessages(msgLength);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, setTotalMessages]);
+  }, [data]);
 
   useEffect(() => {
     triggerFetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triggerFetch]);
+  }, []);
 
   return (
     <div className="flex flex-row h-full w-full">
