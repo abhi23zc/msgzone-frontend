@@ -17,9 +17,10 @@ import {
   LogOut
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [activeItem, setActiveItem] = useState('dashboard');
 
   const params = usePathname()
@@ -29,9 +30,11 @@ export default function Sidebar() {
       if(params.includes('bulkSend')) setActiveItem('bulkSend')
       if(params.includes('scheduled')) setActiveItem('scheduled')
       if(params.includes('device')) setActiveItem('device')
+      if(params.includes('messagelog')) setActiveItem('messagelog')
 
   }, [usePathname])
-  
+
+  const {user} = useAuth()
 
   const router = useRouter()
 
@@ -45,7 +48,7 @@ export default function Sidebar() {
     { id: 'contact-book', name: 'Contact Book', icon: <Users size={20} /> },
     { id: 'bulkSend', name: 'Send Bulk Message', icon: <Send size={20} /> },
     { id: 'scheduled', name: 'Scheduled Message', icon: <Calendar size={20} /> },
-    { id: 'message-log', name: 'Message Log', icon: <List size={20} /> },
+    { id: 'messagelog', name: 'Message Log', icon: <MessageSquare size={20} /> },
     { id: 'logout', name: 'Log out', icon: <LogOut size={20} /> },
     // { id: 'webhook', name: 'Webhook Logs', icon: <Bookmark size={20} /> },
   ];
@@ -117,7 +120,7 @@ export default function Sidebar() {
           {!collapsed && (
             <>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">user</p>
+                <p className="text-sm font-medium text-gray-700">{user?.name}</p>
               </div>
               <ChevronRight size={16} className="ml-auto text-gray-400" />
             </>

@@ -27,6 +27,7 @@ import useLocalStorage from '@/hooks/useLocalstorage';
 import { useFetch } from '@/hooks/useFetch';
 import toast from 'react-hot-toast';
 import Loading from '@/components/Loading';
+import { useAuth } from '@/context/AuthContext';
 
 export default function BulkSend() {
   const URL = process.env.NEXT_PUBLIC_API_URL
@@ -37,6 +38,8 @@ export default function BulkSend() {
 
   const [recipientList, setRecipientList] = useState('')
   const [messageContent, setMessageContent] = useState('')
+
+  const {setTotalMessages} = useAuth();
 
 
   const [mounted, setMounted] = useState(false);
@@ -97,15 +100,21 @@ export default function BulkSend() {
   };
 
   async function handleSubmit() {
+    
+   
     console.log("Bulk send")
 
     let arr = recipientList
-      .replace(/\s+/g, "")       // Remove all spaces
-      .replace(/'/g, "")         // Remove all single quotes
-      .split(",")                // Split by comma
-      .filter(Boolean);          // Remove empty strings
+      .replace(/\s+/g, "")       
+      .split(",")                
+      .filter(Boolean);
 
     setRecipientList(arr)
+
+    if(Array.isArray(arr)){
+
+      setTotalMessages((prev) => prev + arr?.length)
+    }
 
     setTimeout(() => {
 
@@ -118,7 +127,7 @@ export default function BulkSend() {
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen">
+    <div className="flex ">
       <Sidebar />
       <div className="flex-1 w-full min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-2 sm:p-4 md:p-6">
         <div className="w-full max-w-2xl sm:max-w-3xl md:max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">

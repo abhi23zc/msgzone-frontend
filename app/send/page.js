@@ -27,6 +27,7 @@ import useLocalStorage from '@/hooks/useLocalstorage';
 import { useFetch } from '@/hooks/useFetch';
 import toast from 'react-hot-toast';
 import Loading from '@/components/Loading';
+import { useAuth } from '@/context/AuthContext';
 
 
 export default function SingleSend() {
@@ -39,13 +40,15 @@ export default function SingleSend() {
   const [recipientList, setRecipientList] = useState('')
   const [messageContent, setMessageContent] = useState('')
 
-  // Hydration fix: Only render after client mounts
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const [user]  = useLocalStorage("user");
+
+  const {setTotalMessages} = useAuth();
 
   const [data, loading, error, trigger] = useFetch(
     URL + '/api/v1/wp/send',
@@ -61,6 +64,7 @@ export default function SingleSend() {
       // toast.success("Message Sent")
       console.log(data);
     }
+    
 
   }, [data, error])
 
@@ -76,6 +80,7 @@ export default function SingleSend() {
   };
   async function handleSubmit() {
     console.log("Single Send")
+    setTotalMessages((prev)=> prev+1)
     setTimeout(() => {
 
       trigger()
@@ -84,11 +89,10 @@ export default function SingleSend() {
   }
 
 
-  // Only render after mount to avoid hydration errors
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen">
+    <div className="flex ">
       <Sidebar />
       <div className="flex-1 w-full min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-2 sm:p-4 md:p-6">
         <div className="w-full max-w-2xl sm:max-w-3xl md:max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">

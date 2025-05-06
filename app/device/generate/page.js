@@ -10,8 +10,8 @@ export default function GenerateQR() {
 
     const URL = process.env.NEXT_PUBLIC_API_URL
     const [qrData, setqrData] = useState(null)
-    const [data, loading, error, trigger] = useFetch('https://perfect-duck-magical.ngrok-free.app/api/v1/wp/scan')
-    // const [data, loading, error, trigger] = useFetch(URL+'/api/v1/wp/scan')
+    // const [data, loading, error, trigger] = useFetch('https://perfect-duck-magical.ngrok-free.app/api/v1/wp/scan')
+    const [data, loading, error, trigger] = useFetch(URL+'/api/v1/wp/scan')
     useEffect(() => {
         if(error){
             toast.error(error)
