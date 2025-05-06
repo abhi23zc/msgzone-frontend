@@ -1,10 +1,15 @@
-import Sidebar from '@/components/Sidebar'
-import React from 'react'
+"use client"
+import { useRouter } from 'next/navigation'
+import React, { useEffect } from 'react'
 
 function App() {
-  return (
-    <Sidebar/>
-    
+  const router = useRouter();
+  useEffect(() => {
+    router.push("/dashboard")
+  }, [router])
+  
+  return (  
+    <></>
   )
 }
 

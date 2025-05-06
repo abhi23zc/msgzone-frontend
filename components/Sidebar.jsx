@@ -13,7 +13,8 @@ import {
   Bookmark,
   MapPin,
   Menu,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -45,6 +46,7 @@ export default function Sidebar() {
     { id: 'bulkSend', name: 'Send Bulk Message', icon: <Send size={20} /> },
     { id: 'scheduled', name: 'Scheduled Message', icon: <Calendar size={20} /> },
     { id: 'message-log', name: 'Message Log', icon: <List size={20} /> },
+    { id: 'logout', name: 'Log out', icon: <LogOut size={20} /> },
     // { id: 'webhook', name: 'Webhook Logs', icon: <Bookmark size={20} /> },
   ];
 
@@ -81,6 +83,12 @@ export default function Sidebar() {
             <li key={item.id}>
               <button
                 onClick={() => {
+                  if(item.id == "logout"){
+                    localStorage.clear();
+                    document.cookie = `token=''; path=/;`;
+                    router.push("/login")
+                    return ;
+                  }
                   setActiveItem(item.id)
                   router.push(item.id)
                 }}

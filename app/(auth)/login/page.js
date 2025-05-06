@@ -63,7 +63,7 @@ export default function Login() {
             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-400 flex items-center justify-center mb-4 shadow-lg">
               <div className="h-8 w-8 rounded bg-indigo-900"></div>
             </div>
-            <span className="text-3xl font-bold text-white mb-2">Dashdark X</span>
+            <span className="text-3xl font-bold text-white mb-2">Msgzone</span>
             <p className="text-slate-200 text-center max-w-xs">
               Welcome back! Sign in to access your dashboard and manage your account.
             </p>
@@ -185,7 +185,7 @@ export default function Login() {
       </div>
       {/* Footer */}
       <div className="w-full text-center text-slate-500 text-xs sm:text-sm mt-8 absolute bottom-2 left-0">
-        &copy; {new Date().getFullYear()} Dashdark X. All rights reserved.
+        &copy; {new Date().getFullYear()} Msgzone. All rights reserved.
       </div>
     </div>
   );
