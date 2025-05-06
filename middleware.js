@@ -9,7 +9,7 @@ export async function middleware(req) {
     }
 
     // Protect the root route "/"
-    if (pathname === '/' || pathname === '/dashboard' ) {
+    if (pathname === '/') {
         const token = req.cookies.get('token')?.value;
 
         try {

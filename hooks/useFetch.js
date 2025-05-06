@@ -40,6 +40,7 @@ export const useFetch = (url, options = {}) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${tokenRef.current}`,
+            'ngrok-skip-browser-warning': 'true',
             ...headers,
           },
           ...(body && { body: JSON.stringify(body) }),
