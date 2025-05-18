@@ -1,6 +1,5 @@
 import { useWhatsapp } from "@/context/WhatsappContext";
 import { Input, Modal } from "antd";
-import { useEffect, useState } from "react";
 
 const CustomModal = ({
   isModalOpen,
@@ -12,6 +11,7 @@ const CustomModal = ({
   props: any;
 }) => {
   const { deviceName = "", setdeviceName = () => {} } = props || {};
+  const { loading } = useWhatsapp();
   const handleOk = async () => {
     try {
       const QR_data = await props?.startSession(deviceName);
@@ -36,6 +36,8 @@ const CustomModal = ({
         width={400}
         open={isModalOpen}
         onOk={handleOk}
+        okText={loading ? "Please wait" : "Start"}
+        okButtonProps={{ disabled: loading }}
         onCancel={handleCancel}
       >
         <Input

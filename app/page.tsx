@@ -2,7 +2,6 @@
 import MessageList from "@/components/MessageList";
 import CustomModal from "@/components/Modal";
 import ProtectedRoute from "@/components/Protected";
-import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import { Button, Modal, Progress, QRCode } from "antd";
@@ -10,21 +9,21 @@ import {
   CheckCircle2Icon,
   CircleCheck,
   MessageSquareIcon,
-  Plus,
   Timer,
   WatchIcon,
 } from "lucide-react";
 import { useEffect, useState, type FC } from "react";
+import toast from "react-hot-toast";
 
 const Home: FC = () => {
-  const { user, loading } = useAuth();
-  const { startSession } = useWhatsapp();
+  const { user, checkUser, loading: authLoading } = useAuth();
+  const { startSession, loading, TimeoutInterval, allMessages } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
   const [deviceName, setdeviceName] = useState("");
 
   const countDown = (qrData: string | null) => {
-    let secondsToGo = 60;
+    let secondsToGo = 30;
 
     const instance = modal.success({
       title: "Scan Whatsapp",
@@ -33,8 +32,16 @@ const Home: FC = () => {
           {qrData && <img src={qrData} className="w-full pr-5" />}
         </div>
       ),
+      onOk() {
+        if (TimeoutInterval) clearTimeout(TimeoutInterval);
+      },
+     okText: `Ok (${secondsToGo})`  ,
       width: 400,
     });
+
+    instance.update({
+      okText: `Ok (${secondsToGo})`,
+    })
 
     const timer = setInterval(() => {
       secondsToGo -= 1;
@@ -46,8 +53,6 @@ const Home: FC = () => {
     }, secondsToGo * 1000);
   };
 
-  useEffect(() => {}, [loading, user]);
-
   const handleSubmit = async () => {
     try {
       setisModalOpen(true);
@@ -56,6 +61,15 @@ const Home: FC = () => {
     }
   };
 
+  useEffect(() => {}, [TimeoutInterval]);
+
+  const handleRefresh = async () => {
+    try {
+      await checkUser();
+    } catch (error) {
+      toast.error("Errow while refreshing");
+    }
+  };
   return (
     <main className="min-h-screen w-full bg-[url('/assets/bg.png')] bg-cover bg-center bg-no-repeat flex ">
       <CustomModal
@@ -64,8 +78,9 @@ const Home: FC = () => {
         props={{ countDown, startSession, deviceName, setdeviceName }}
       />
       {contextHolder}
-      <Sidebar />
+
       {/* Right Component */}
+
       <section className="w-full p-4 md:p-6 bg-gray-50 overflow-y-auto min-h-screen">
         <div className="w-full max-w-7xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 transform transition-all hover:shadow-lg">
@@ -168,8 +183,20 @@ const Home: FC = () => {
                 color="purple"
                 variant="solid"
                 size="middle"
+                loading={loading}
               >
                 Add Device
+              </Button>
+
+              <Button
+                onClick={handleRefresh}
+                color="purple"
+                variant="solid"
+                size="middle"
+                className="ml-2"
+                loading={authLoading}
+              >
+                Refresh
               </Button>
             </div>
 
@@ -224,12 +251,11 @@ const Home: FC = () => {
                             variant="outlined"
                             size="small"
                             className="text-sm"
-                            onClick={()=>{
-                              setdeviceName(device?.deviceId)
-                              handleSubmit()
+                            onClick={() => {
+                              setdeviceName(device?.deviceId);
+                              handleSubmit();
                             }}
                           >
-                            
                             Connect
                           </Button>
                         )}
@@ -243,14 +269,31 @@ const Home: FC = () => {
 
           {/* Recent Messages */}
           <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-            <div className="p-6 border-b">
-              <h2 className="text-2xl font-semibold text-gray-900">
-                Recent Messages
-              </h2>
-              <p className="text-gray-500 mt-1">
-                Status of your recent messages
-              </p>
+            <div className="p-6 border-b flex justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  Recent Messages
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Status of your recent messages
+                </p>
+
+                <p className="text-gray-500 mt-1">
+                  Total Messages: {allMessages.length / 2 || 0}
+                </p>
+              </div>
+               <Button
+                onClick={handleRefresh}
+                color="purple"
+                variant="solid"
+                size="middle"
+                className="ml-2"
+                loading = {authLoading }
+              >
+                Refresh
+              </Button>
             </div>
+
             <MessageList />
           </div>
         </section>
@@ -261,8 +304,8 @@ const Home: FC = () => {
 
 export default function Page() {
   return (
-    // <ProtectedRoute>
+    <ProtectedRoute>
     <Home />
-    // </ProtectedRoute>
+    </ProtectedRoute>
   );
 }

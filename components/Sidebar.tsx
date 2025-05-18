@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Divider, Layout, Menu, theme } from "antd";
+import { useRouter } from "next/navigation";
 
 const { Sider } = Layout;
 
@@ -46,7 +47,25 @@ const Sidebar: React.FC = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+  const router = useRouter();
+  
+  // Check if we're on client-side before accessing window
+  const [mounted, setMounted] = useState(false);
+  
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
+  if (!mounted) return null;
+
+  const pathname = window.location.pathname;
+  const hideOnPaths = ['/login', '/register'];
+  const shouldHideSidebar = hideOnPaths.some(path => pathname.includes(path));
+
+  if (shouldHideSidebar) {
+    return null;
+  }
+  
   return (
     // <Layout style={{ minHeight: "100vh" }}>
     <Sider
@@ -69,9 +88,16 @@ const Sidebar: React.FC = () => {
       </div>
       <Divider className="mb-8" />
       <Menu
+       className="no-highlight"
         theme="light"
         defaultSelectedKeys={["1"]}
         mode="inline"
+
+        onClick={({key})=> {
+          if(key == '1') router.push("/")
+          if(key == '2') router.push("/send")
+          if(key == '3') router.push("/reports")
+        }}
         items={items}
       />
     </Sider>

@@ -3,6 +3,8 @@ import { Jost } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { WhatsappProvider } from "@/context/WhatsappContext";
+import Sidebar from "@/components/Sidebar";
+import { Toaster } from "react-hot-toast";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -27,7 +29,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${jost.variable} ${jost.variable} antialiased`}>
         <AuthProvider>
-          <WhatsappProvider>{children}</WhatsappProvider>
+          <WhatsappProvider>
+            <div className="flex ">
+              <Toaster/>
+              <Sidebar />
+              {children}
+            </div>
+          </WhatsappProvider>
         </AuthProvider>
       </body>
     </html>
