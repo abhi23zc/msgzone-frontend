@@ -8,10 +8,12 @@ import {
   ToolOutlined,
   UserOutlined,
   PieChartOutlined,
+  LogoutOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Divider, Layout, Menu, theme } from "antd";
 import { useRouter, usePathname } from "next/navigation";
+import api from "@/services/api";
 
 const { Sider } = Layout;
 
@@ -39,6 +41,7 @@ const items: MenuItem[] = [
   getItem("Plans", "5", <BulbOutlined />),
   getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),
+  getItem("Logout", "8", <LogoutOutlined />),
 ];
 
 const Sidebar: React.FC = () => {
@@ -48,7 +51,7 @@ const Sidebar: React.FC = () => {
   } = theme.useToken();
 
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
 
   const hideOnPaths = ["/login", "/register"];
   const shouldHideSidebar = hideOnPaths.includes(pathname);
@@ -82,6 +85,24 @@ const Sidebar: React.FC = () => {
           if (key === "1") router.push("/");
           if (key === "2") router.push("/send");
           if (key === "3") router.push("/reports");
+          if (key === "6") router.push("/api");
+          if (key === "6") router.push("/api");
+          if (key === "8") {
+            (async function logout() {
+              await api
+                .get("/auth/logout")
+                .then((res) => {
+                  console.log(res.data);
+                  setTimeout(() => {
+                    window.location.reload()
+                  }, 1000);
+                
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            })();
+          }
         }}
         items={items}
       />
