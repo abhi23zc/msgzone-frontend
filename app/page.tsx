@@ -115,7 +115,7 @@ const Home: FC = () => {
                     <h4 className="text-sm font-medium text-blue-900">
                       Valid until
                     </h4>
-                    <p className="text-blue-700 font-semibold">June 30, 2023</p>
+                    <p className="text-blue-700 font-semibold">June 30, 2025</p>
                   </div>
                 </div>
               </div>
