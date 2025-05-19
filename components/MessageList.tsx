@@ -14,10 +14,10 @@ const MessageList: React.FC = () => {
 
   // Deduplicate and sort messages when allMessages change
   useEffect(() => {
-    if (allMessages.length > 0) {
+    if (Array.isArray(allMessages) && allMessages.length > 0) {
       const messageMap = new Map<string, any>();
       allMessages.forEach((msg) => {
-        if (!messageMap.has(msg._id)) {
+        if (msg && msg._id && !messageMap.has(msg._id)) {
           messageMap.set(msg._id, msg);
         }
       });
@@ -28,6 +28,9 @@ const MessageList: React.FC = () => {
       setUniqueSortedMessages(sortedMessages);
       setDisplayedMessages(sortedMessages.slice(0, PAGE_SIZE)); // initial page
       setPage(1);
+    } else {
+      setUniqueSortedMessages([]);
+      setDisplayedMessages([]);
     }
   }, [allMessages]);
 
@@ -66,35 +69,37 @@ const MessageList: React.FC = () => {
         <List
           dataSource={displayedMessages}
           renderItem={(item) => (
-            <List.Item key={item._id}>
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    style={{
-                      backgroundColor:
-                        item.sendFrom === "business" ? "#87d068" : "#1890ff",
-                    }}
-                  >
-                    {item.sendFrom[0].toUpperCase()}
-                  </Avatar>
-                }
-                title={`From: ${item.sendFrom} To: ${item.sendTo}`}
-                description={
-                  <>
-                    <div>{item.text}</div>
-                    <small>{new Date(item.createdAt).toLocaleString()}</small>
-                  </>
-                }
-              />
-              <div
-                style={{
-                  padding: "0 8px",
-                  color: item.status === "delivered" ? "#87d068" : "#666",
-                }}
-              >
-                {item.status}
-              </div>
-            </List.Item>
+            item && (
+              <List.Item key={item._id}>
+                <List.Item.Meta
+                  avatar={
+                    <Avatar
+                      style={{
+                        backgroundColor:
+                          item.sendFrom === "business" ? "#87d068" : "#1890ff",
+                      }}
+                    >
+                      {item.sendFrom && item.sendFrom[0] ? item.sendFrom[0].toUpperCase() : '?'}
+                    </Avatar>
+                  }
+                  title={`From: ${item.sendFrom || 'Unknown'} To: ${item.sendTo || 'Unknown'}`}
+                  description={
+                    <>
+                      <div>{item.text}</div>
+                      <small>{new Date(item.createdAt).toLocaleString()}</small>
+                    </>
+                  }
+                />
+                <div
+                  style={{
+                    padding: "0 8px",
+                    color: item.status === "delivered" ? "#87d068" : "#666",
+                  }}
+                >
+                  {item.status}
+                </div>
+              </List.Item>
+            )
           )}
         />
       </InfiniteScroll>
