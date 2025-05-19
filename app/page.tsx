@@ -35,13 +35,13 @@ const Home: FC = () => {
       onOk() {
         if (TimeoutInterval) clearTimeout(TimeoutInterval);
       },
-     okText: `Ok (${secondsToGo})`  ,
+      okText: `Ok (${secondsToGo})`,
       width: 400,
     });
 
     instance.update({
       okText: `Ok (${secondsToGo})`,
-    })
+    });
 
     const timer = setInterval(() => {
       secondsToGo -= 1;
@@ -201,69 +201,73 @@ const Home: FC = () => {
             </div>
 
             <div className="p-6 space-y-2 h-96 overflow-y-scroll">
-              {user?.data?.user?.devices?.map((device: any, index: number) => {
-                return (
-                  <div className="bg-white rounded-xl p-4 border hover:shadow-md transition-shadow">
-                    <div className="flex flex-wrap gap-4 justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
-                          <img src="/assets/whatsapp.png" alt="whatsapp" />
-                        </div>
+              {user?.data?.user?.devices?.length > 0 ? (
+                user.data.user.devices.map((device: any, index: number) => {
+                  return (
+                    <div className="bg-white rounded-xl p-4 border hover:shadow-md transition-shadow">
+                      <div className="flex flex-wrap gap-4 justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                            <img src="/assets/whatsapp.png" alt="whatsapp" />
+                          </div>
 
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            {device?.deviceId}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-gray-400">•</span>
-                            <span className="text-sm text-gray-500">
-                              Last active: {device?.lastConnected}
-                            </span>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              {device?.deviceId}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-gray-400">•</span>
+                              <span className="text-sm text-gray-500">
+                                Last active: {device?.lastConnected}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex flex-col items-end space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2.5 h-2.5 rounded-full ${
-                              device?.status != "connected"
-                                ? "bg-red-500"
-                                : "bg-green-500"
-                            } `}
-                          ></div>
-                          <span
-                            className={`text-sm ${
-                              device?.status != "connected"
-                                ? "text-red-600"
-                                : "text-green-600"
-                            }  font-medium`}
-                          >
-                            {device?.status == "connected"
-                              ? "Active"
-                              : "Inactive"}
-                          </span>
+                        <div className="flex flex-col items-end space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-2.5 h-2.5 rounded-full ${
+                                device?.status != "connected"
+                                  ? "bg-red-500"
+                                  : "bg-green-500"
+                              } `}
+                            ></div>
+                            <span
+                              className={`text-sm ${
+                                device?.status != "connected"
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }  font-medium`}
+                            >
+                              {device?.status == "connected"
+                                ? "Active"
+                                : "Inactive"}
+                            </span>
+                          </div>
+
+                          {device?.status == "disconnected" && (
+                            <Button
+                              color="green"
+                              variant="outlined"
+                              size="small"
+                              className="text-sm"
+                              onClick={() => {
+                                setdeviceName(device?.deviceId);
+                                handleSubmit();
+                              }}
+                            >
+                              Connect
+                            </Button>
+                          )}
                         </div>
-
-                        {device?.status == "disconnected" && (
-                          <Button
-                            color="green"
-                            variant="outlined"
-                            size="small"
-                            className="text-sm"
-                            onClick={() => {
-                              setdeviceName(device?.deviceId);
-                              handleSubmit();
-                            }}
-                          >
-                            Connect
-                          </Button>
-                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p>No devices found.</p>
+              )}
             </div>
           </div>
 
@@ -279,16 +283,17 @@ const Home: FC = () => {
                 </p>
 
                 <p className="text-gray-500 mt-1">
-                  Total Messages: {allMessages.length / 2 || 0}
+                  Total Messages:{" "}
+                  {Array.isArray(allMessages) ? allMessages.length / 2 : 0}
                 </p>
               </div>
-               <Button
+              <Button
                 onClick={handleRefresh}
                 color="purple"
                 variant="solid"
                 size="middle"
                 className="ml-2"
-                loading = {authLoading }
+                loading={authLoading}
               >
                 Refresh
               </Button>
@@ -305,7 +310,7 @@ const Home: FC = () => {
 export default function Page() {
   return (
     <ProtectedRoute>
-    <Home />
+      <Home />
     </ProtectedRoute>
   );
 }

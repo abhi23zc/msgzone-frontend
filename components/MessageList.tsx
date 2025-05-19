@@ -4,35 +4,30 @@ import { Avatar, Divider, List, Skeleton } from "antd";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useWhatsapp } from "@/context/WhatsappContext";
 
+const PAGE_SIZE = 10;
+
 const MessageList: React.FC = () => {
   const { loading, getAllMessages, allMessages } = useWhatsapp();
-  const [data, setData] = useState<any[]>([]);
+  const [uniqueSortedMessages, setUniqueSortedMessages] = useState<any[]>([]);
+  const [displayedMessages, setDisplayedMessages] = useState<any[]>([]);
   const [page, setPage] = useState(1);
 
-  const loadMoreData = () => {
-    if (loading) {
-      return;
-    }
-  };
-
-  //  Implement better logic for this 
+  // Deduplicate and sort messages when allMessages change
   useEffect(() => {
     if (allMessages.length > 0) {
-      // Remove duplicates by _id and keep only the first occurrence
-      const uniqueMessages = allMessages.reduce<typeof allMessages>((acc, current) => {
-        const exists = acc.find((item) => item._id === current._id);
-        if (!exists) {
-          acc.push(current);
+      const messageMap = new Map<string, any>();
+      allMessages.forEach((msg) => {
+        if (!messageMap.has(msg._id)) {
+          messageMap.set(msg._id, msg);
         }
-        return acc;
-      }, []);
-
-      // Sort unique messages by creation date
-      const sortedMessages = [...uniqueMessages].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      });
+      // Convert map back to array and sort by date descending
+      const sortedMessages = Array.from(messageMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-      
-      setData(sortedMessages);
+      setUniqueSortedMessages(sortedMessages);
+      setDisplayedMessages(sortedMessages.slice(0, PAGE_SIZE)); // initial page
+      setPage(1);
     }
   }, [allMessages]);
 
@@ -40,9 +35,15 @@ const MessageList: React.FC = () => {
     getAllMessages();
   }, []);
 
-  useEffect(() => {
-    loadMoreData();
-  }, []);
+  const loadMoreData = () => {
+    if (loading) return;
+
+    const nextPage = page + 1;
+    const nextMessages = uniqueSortedMessages.slice(0, nextPage * PAGE_SIZE);
+
+    setDisplayedMessages(nextMessages);
+    setPage(nextPage);
+  };
 
   return (
     <div
@@ -55,15 +56,15 @@ const MessageList: React.FC = () => {
       }}
     >
       <InfiniteScroll
-        dataLength={data.length}
+        dataLength={displayedMessages.length}
         next={loadMoreData}
-        hasMore={data.length < 50}
+        hasMore={displayedMessages.length < uniqueSortedMessages.length}
         loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
         endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}
         scrollableTarget="scrollableDiv"
       >
         <List
-          dataSource={data}
+          dataSource={displayedMessages}
           renderItem={(item) => (
             <List.Item key={item._id}>
               <List.Item.Meta
