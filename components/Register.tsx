@@ -29,6 +29,7 @@ function RegisterPage() {
         phone: phone || "",
         password: password || "",
       });
+      router.push("/login")
     } catch (error) {
       console.log("Error in register", error);
     }
@@ -42,7 +43,7 @@ function RegisterPage() {
 
   useEffect(() => {
     if (user) {
-      router.push("/login")
+      router.push("/")
     }
   }, [user, loading])
   
@@ -138,7 +139,7 @@ function RegisterPage() {
         <div className="flex justify-center items-center bg-gray-100 w-full py-3">
           <p className="text-sm">Already a member?</p>
           <Link href={"/login"}>
-            <Button type="link" className="text-sm">
+            <Button type="link" className="text-sm ">
               Sign in
             </Button>
           </Link>
