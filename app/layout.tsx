@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { WhatsappProvider } from "@/context/WhatsappContext";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/next"
 
 const jost = Jost({
   variable: "--font-jost",
@@ -33,6 +34,7 @@ export default function RootLayout({
             <div className="flex ">
               <Toaster/>
               <Sidebar />
+              <Analytics/>
               {children}
             </div>
           </WhatsappProvider>

@@ -284,7 +284,7 @@ const Home: FC = () => {
 
                 <p className="text-gray-500 mt-1">
                   Total Messages:{" "}
-                  {Array.isArray(allMessages) ? allMessages.length / 2 : 0}
+                  {Array.isArray(allMessages) ? allMessages.length : 0}
                 </p>
               </div>
               <Button
