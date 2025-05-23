@@ -17,7 +17,13 @@ import toast from "react-hot-toast";
 
 const Home: FC = () => {
   const { user, checkUser, loading: authLoading } = useAuth();
-  const { startSession, loading, TimeoutInterval, allMessages } = useWhatsapp();
+  const {
+    startSession,
+    loading,
+    TimeoutInterval,
+    allMessages,
+    getAllMessages,
+  } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
   const [deviceName, setdeviceName] = useState("");
@@ -32,6 +38,7 @@ const Home: FC = () => {
           {qrData && <img src={qrData} className="w-full pr-5" />}
         </div>
       ),
+      maskClosable: false,
       onOk() {
         if (TimeoutInterval) clearTimeout(TimeoutInterval);
       },
@@ -39,12 +46,12 @@ const Home: FC = () => {
       width: 400,
     });
 
-    instance.update({
-      okText: `Ok (${secondsToGo})`,
-    });
-
+    
     const timer = setInterval(() => {
       secondsToGo -= 1;
+      instance.update({
+        okText: `Ok (${secondsToGo})`,
+      });
     }, 1000);
 
     setTimeout(() => {
@@ -130,7 +137,12 @@ const Home: FC = () => {
                     <h3 className="text-lg font-semibold text-gray-700 mb-2">
                       Monthly Messages
                     </h3>
-                    <Progress percent={30} size={8} />
+                    <Progress
+                      percent={30}
+                      strokeWidth={10}
+                      strokeColor="#1677ff"
+                      showInfo={true}
+                    />
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -141,7 +153,12 @@ const Home: FC = () => {
                     <h3 className="text-lg font-semibold text-gray-700 mb-2">
                       Monthly Usage
                     </h3>
-                    <Progress percent={30} size={8} strokeColor="#22C55E" />
+                    <Progress
+                      percent={30}
+                      strokeWidth={10}
+                      strokeColor="#1677ff"
+                      showInfo={true}
+                    />
                   </div>
                 </div>
               </div>
@@ -218,7 +235,7 @@ const Home: FC = () => {
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-gray-400">•</span>
                               <span className="text-sm text-gray-500">
-                                Last active: {device?.lastConnected}
+                                Last active: {new Date(device?.lastConnected).toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -288,12 +305,14 @@ const Home: FC = () => {
                 </p>
               </div>
               <Button
-                onClick={handleRefresh}
+                onClick={() => {
+                  getAllMessages();
+                }}
                 color="purple"
                 variant="solid"
                 size="middle"
                 className="ml-2"
-                loading={authLoading}
+                loading={loading}
               >
                 Refresh
               </Button>

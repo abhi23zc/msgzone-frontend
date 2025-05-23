@@ -1,19 +1,30 @@
-"use client"
-import React, { useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+"use client";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import Loading from "./Loading";
 
-const ProtectedRoute = ({ children }:{children:React.ReactNode}) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
-  }, [user, loading]);
+  }, [loading, user, router]);
 
-  if (loading || !user) return <p>Loading...</p>;
+  if (loading) {
+    return (<Loading isLoading={true}/>)
+  }
+
   return children;
 };
 

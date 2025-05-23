@@ -16,14 +16,16 @@ function Send() {
   let devices = user?.data?.user?.devices;
   const onFinish = async (values: any) => {
     
-    console.log("Form values:", values);
     const msg:any = await sendMessage({
       number: values.recipientNumber,
       message: values.message,
       deviceId: values.fromNumber,
     })
-    if(msg) toast.success("Message sent successfully");
-    else toast.error("Error while sending message");
+    if(msg) {
+
+      toast.success("Message sent successfully");
+    }
+      else toast.error("Error while sending message");
 
   };
 

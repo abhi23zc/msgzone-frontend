@@ -15,6 +15,10 @@ const CustomModal = ({
   const handleOk = async () => {
     try {
       const QR_data = await props?.startSession(deviceName);
+      if(!QR_data) {
+        setIsModalOpen(false)
+        return ;
+      }
       //   console.log("QR_Data>> ", QR_data);
       props?.countDown(QR_data);
 

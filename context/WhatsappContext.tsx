@@ -1,6 +1,8 @@
 "use client";
 import api from "@/services/api";
 import { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
+import toast from "react-hot-toast";
 
 const delay = async (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,6 +45,7 @@ export const WhatsappProvider = ({
   const [error, setError] = useState<string | "">("");
   const [allMessages, setAllMessages] = useState<any>([]);
   const [TimeoutInterval, setTimeoutInterval] = useState<any>(null);
+  const {checkUser, user} = useAuth()
 
   const startSession = async (deviceId: string | "") => {
     console.log("Starting Session");
@@ -50,10 +53,17 @@ export const WhatsappProvider = ({
       setError("");
       if (!deviceId) throw new Error("Device Id is required");
       setLoading(true);
+      
       const res = await api.post("/wp/start", { deviceId });
+
       if (res.data?.message == "QR generated successfully") {
         await delay(3000);
         return connectSession(deviceId);
+      }
+      else if(res?.data?.message == "Client already connected"){
+        setLoading(false);
+        toast.error("Client already exists")
+        return null
       }
       // if(res?.data?.status){
       //     connectSession()
@@ -73,8 +83,13 @@ export const WhatsappProvider = ({
       const res = await api.post("/wp/connect", { deviceId });
       console.log(res?.data);
       if (res?.data?.status) {
-        const timeoutInterval = setTimeout(() => {
+        const timeoutInterval = setTimeout(async() => {
           setLoading(false);
+          try {
+            await checkUser();
+          } catch (error) {
+            toast.error("Error while connecting device");
+          }
         }, 30000);
 
         setTimeoutInterval(timeoutInterval);
@@ -82,8 +97,13 @@ export const WhatsappProvider = ({
       }
     } catch (error) {
       setLoading(false);
-      setError("Error while connecting whatsapp");
-      console.log("Error while connecting whatsapp :", error);
+      try {
+        await checkUser();
+      } catch (error) {
+        setError("Error while connecting whatsapp");
+        return null;
+      }
+      toast.error("Error while connecting device");
       return null;
     }
   };
@@ -122,13 +142,11 @@ export const WhatsappProvider = ({
       setLoading(true);
       const res = await api.get("/wp/getAllMessages");
       const msgArray = res?.data?.data;
+      const allMsgs = msgArray?.reduce((acc: any[], { messages }: any) => {
+        return [...acc, ...messages];
+      }, []);
 
-      msgArray?.map(({ messages }: any) => {
-        messages.map((msg: any) => {
-          setAllMessages((prev: any) => [...prev, msg]);
-        });
-        // console.log(messages);
-      });
+      setAllMessages(allMsgs || []);
       
     } catch (error) {
       setError("Error while fetching messages");
