@@ -94,7 +94,7 @@ const Sidebar: React.FC = () => {
                 .then((res) => {
                   console.log(res.data);
                   setTimeout(() => {
-                    router.push("/login")
+                    window.location.reload()
                   }, 500);
                 
                 })
