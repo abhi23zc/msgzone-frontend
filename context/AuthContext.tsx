@@ -1,6 +1,7 @@
 "use client";
 import api from "@/services/api";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 interface AuthContextType {
   user: any;
@@ -9,6 +10,7 @@ interface AuthContextType {
   register: (credentials: {name:string| null, phone: string | null, email: string | null, password: string | null}) => Promise<void>;
   logout: () => Promise<void>;
   checkUser: () => Promise<void>;
+  error: null | string;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,12 +19,14 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: async () => {},
   register:async()=>{},
-  checkUser: async()=>{}
+  checkUser: async()=>{},
+  error: null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -30,6 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkUser = async () => {
     try {
+      setError(null)
       setLoading(true);
       const res = await api.get("/auth/profile");
       setUser(res.data);
@@ -44,12 +49,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async ({ email, password }: { email: string | null, password: string | null}) => {
     try {
+      setError(null)
       setLoading(true);
       const res = await api.post("/auth/login", { email, password });
       setUser(res.data);
       // console.log("Data", res.data);
     } catch (error) {
       console.log("Login error:", error);
+      toast.error("Invalid credentials")
     } finally {
       setLoading(false);
     }
@@ -57,12 +64,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async ({ name, phone, email, password}:  {name:string| null, phone: string | null, email: string | null, password: string | null}) => {
     try {
+      setError(null)
       setLoading(true);
       const res = await api.post("/auth/register", { email, password, name, whatsappNumber: phone,  businessName:"msgzone"});
       setUser(res.data);
       // console.log("Data", res.data);
-    } catch (error) {
-      console.log("Register error:", error);
+    } catch (error:any) {
+      console.log("Register error:", error?.response?.data?.message);
+      setError(error?.response?.data?.message)
+    
     } finally {
       setLoading(false);
     }
@@ -70,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      setError(null)
       setLoading(true);
       await api.post("/auth/logout");
       setUser(null);
@@ -82,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout , register, checkUser}}>
+    <AuthContext.Provider value={{ user, loading, login, logout , register, checkUser, error}}>
       {children}
     </AuthContext.Provider>
   );

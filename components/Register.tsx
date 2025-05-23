@@ -17,18 +17,19 @@ type FieldType = {
 };
 
 function RegisterPage() {
-  const { user, loading, register } = useAuth();
+  const { user, loading, register, error } = useAuth();
   const router = useRouter()
   const onFinish: FormProps<FieldType>["onFinish"] = async (values) => {
     const { name, email, phone, password } = values;
     if(!name || !email || !phone || !password) return
     try {
-      await register({
+      const res = await register({
         name: name || "",
         email: email || "",
         phone: phone || "",
         password: password || "",
       });
+      if(res != null)
       router.push("/login")
     } catch (error) {
       console.log("Error in register", error);
@@ -125,7 +126,11 @@ function RegisterPage() {
                 Register
               </Button>
             </Form.Item>
-
+            {error && (
+              <div className="w-full max-w-xs bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
             <div className="flex items-center w-full px-2">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="mx-4 text-gray-700 font-medium">Or</span>
@@ -136,12 +141,12 @@ function RegisterPage() {
           <SocialIcons />
         </div>
 
-        <div className="flex justify-center items-center bg-gray-100 w-full py-3">
+        <div className="flex justify-center items-center bg-gray-100 w-full py-3 gap-3">
           <p className="text-sm">Already a member?</p>
           <Link href={"/login"}>
-            <Button type="link" className="text-sm ">
+            <p  className="text-sm text-cyan-600">
               Sign in
-            </Button>
+            </p>
           </Link>
         </div>
       </div>

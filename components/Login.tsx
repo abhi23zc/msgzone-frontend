@@ -124,12 +124,12 @@ function LoginPage() {
           <SocialIcons />
         </div>
 
-        <div className="flex justify-center items-center bg-gray-100 w-full py-3">
+        <div className="flex justify-center items-center bg-gray-100 w-full py-3 gap-2">
           <p className="text-sm">Not a member?</p>
           <Link href={"/register"}>
-            <Button type="link" className="text-sm">
+            <p className="text-sm text-cyan-600">
               Sign up
-            </Button>
+            </p>
           </Link>
         </div>
       </div>
