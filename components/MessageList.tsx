@@ -93,7 +93,7 @@ const MessageList: React.FC = () => {
                 <div
                   style={{
                     padding: "0 8px",
-                    color: item.status === "delivered" ? "#87d068" : "#666",
+                    color: item.status === "delivered" ? "#87d068" : "#FF0000",
                   }}
                 >
                   {item.status}
