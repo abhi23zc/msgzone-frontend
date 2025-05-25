@@ -21,7 +21,9 @@ interface WhatsappContextProps {
     deviceId: string;
   }) => Promise<void>;
   getAllMessages: () => Promise<void>;
+  getTodayMessages: () => Promise<void>;
   allMessages: any[];
+  todayMessages: any[];
   error: string | "";
   TimeoutInterval: any;
 }
@@ -31,7 +33,9 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   startSession: async () => {},
   sendMessage: async () => {},
   getAllMessages: async () => {},
+  getTodayMessages: async () => {},
   allMessages: [],
+  todayMessages: [],
   error: "",
   TimeoutInterval: null,
 });
@@ -44,6 +48,7 @@ export const WhatsappProvider = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | "">("");
   const [allMessages, setAllMessages] = useState<any>([]);
+  const [todayMessages, setTodayMessages] = useState<any>([]);
   const [TimeoutInterval, setTimeoutInterval] = useState<any>(null);
   const {checkUser, user} = useAuth()
 
@@ -156,6 +161,25 @@ export const WhatsappProvider = ({
     }
   };
 
+  
+  const getTodayMessages = async () => {
+    try {
+      setError("");
+      setTodayMessages([]);
+      setLoading(true);
+      const res = await api.get("/wp/getTodayMessages");
+      const msgArray = res?.data?.data;
+      setTodayMessages(msgArray || []);
+      
+    } catch (error) {
+      setError("Error while fetching messages");
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   return (
     <WhatsappContext.Provider
       value={{
@@ -164,8 +188,10 @@ export const WhatsappProvider = ({
         startSession,
         sendMessage,
         getAllMessages,
+        getTodayMessages,
         error,
         TimeoutInterval,
+        todayMessages,
       }}
     >
       {children}

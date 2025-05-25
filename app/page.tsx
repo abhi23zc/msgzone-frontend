@@ -24,6 +24,8 @@ const Home: FC = () => {
     TimeoutInterval,
     allMessages,
     getAllMessages,
+    getTodayMessages, 
+    todayMessages
   } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
@@ -320,7 +322,7 @@ const Home: FC = () => {
 
                 <p className="text-gray-500 mt-1">
                   Today Messages:{" "}
-                  {Array.isArray(allMessages) ? allMessages.length : 0}
+                  {Array.isArray(todayMessages) ? todayMessages.length : 0}
                 </p>
                 <p className="text-gray-500 mt-1">
                   Total Messages:{" "}
@@ -330,6 +332,7 @@ const Home: FC = () => {
               <Button
                 onClick={() => {
                   getAllMessages();
+                  getTodayMessages();
                 }}
                 color="purple"
                 variant="solid"

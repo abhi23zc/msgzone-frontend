@@ -7,35 +7,37 @@ import { useWhatsapp } from "@/context/WhatsappContext";
 const PAGE_SIZE = 10;
 
 const MessageList: React.FC = () => {
-  const { loading, getAllMessages, allMessages } = useWhatsapp();
+  const { loading, getAllMessages ,getTodayMessages , todayMessages} = useWhatsapp();
   const [uniqueSortedMessages, setUniqueSortedMessages] = useState<any[]>([]);
   const [displayedMessages, setDisplayedMessages] = useState<any[]>([]);
   const [page, setPage] = useState(1);
 
   // Deduplicate and sort messages when allMessages change
-  useEffect(() => {
-    if (Array.isArray(allMessages) && allMessages.length > 0) {
-      const messageMap = new Map<string, any>();
-      allMessages.forEach((msg) => {
-        if (msg && msg._id && !messageMap.has(msg._id)) {
-          messageMap.set(msg._id, msg);
-        }
-      });
-      // Convert map back to array and sort by date descending
-      const sortedMessages = Array.from(messageMap.values()).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setUniqueSortedMessages(sortedMessages);
-      setDisplayedMessages(sortedMessages.slice(0, PAGE_SIZE)); // initial page
-      setPage(1);
-    } else {
-      setUniqueSortedMessages([]);
-      setDisplayedMessages([]);
-    }
-  }, [allMessages]);
+  // useEffect(() => {
+  //   if (Array.isArray(allMessages) && allMessages.length > 0) {
+  //     const messageMap = new Map<string, any>();
+  //     allMessages.forEach((msg) => {
+  //       if (msg && msg._id && !messageMap.has(msg._id)) {
+  //         messageMap.set(msg._id, msg);
+  //       }
+  //     });
+  //     // Convert map back to array and sort by date descending
+  //     const sortedMessages = Array.from(messageMap.values()).sort(
+  //       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  //     );
+  //     setUniqueSortedMessages(sortedMessages);
+  //     setDisplayedMessages(sortedMessages.slice(0, PAGE_SIZE)); // initial page
+  //     setPage(1);
+  //   } else {
+  //     setUniqueSortedMessages([]);
+  //     setDisplayedMessages([]);
+  //   }
+  // }, [allMessages]);
 
   useEffect(() => {
     getAllMessages();
+    getTodayMessages()
+    setDisplayedMessages(todayMessages)
   }, []);
 
   const loadMoreData = () => {
