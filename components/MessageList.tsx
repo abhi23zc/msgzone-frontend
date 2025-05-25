@@ -35,9 +35,13 @@ const MessageList: React.FC = () => {
   // }, [allMessages]);
 
   useEffect(() => {
+    setDisplayedMessages(todayMessages)
+  },[todayMessages])
+
+  useEffect(() => {
     getAllMessages();
     getTodayMessages()
-    setDisplayedMessages(todayMessages)
+    
   }, []);
 
   const loadMoreData = () => {
