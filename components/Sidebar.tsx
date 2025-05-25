@@ -14,6 +14,7 @@ import type { MenuProps } from "antd";
 import { Divider, Layout, Menu, theme } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import api from "@/services/api";
+import { ChartNoAxesGantt, ChevronLeft, ChevronsLeft } from "lucide-react";
 
 const { Sider } = Layout;
 
@@ -42,10 +43,12 @@ const items: MenuItem[] = [
   getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),
   getItem("Logout", "8", <LogoutOutlined />),
+  getItem("", "9", <ChevronsLeft />),
+
 ];
 
 const Sidebar: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -57,31 +60,41 @@ const Sidebar: React.FC = () => {
   const shouldHideSidebar = hideOnPaths.includes(pathname);
 
   if (shouldHideSidebar) return null;
-
   return (
     <Sider
-      className="h-screen"
-      width={250}
+      className="h-screen relative"
+      width={200}
       theme="light"
       collapsed={collapsed}
       collapsible
       onCollapse={(value) => setCollapsed(value)}
+      collapsedWidth={80}
+      trigger={
+       <>
+       </>
+      }
     >
-      <div className="flex items-center gap-2 ml-4 mt-5">
-        <img src="/assets/logo.png" alt="msgzone logo" className="w-9" />
+      <div className={`flex items-center gap-2 ${collapsed ? "justify-center" : "ml-4"}  mt-5`}>
+      {collapsed && <ChartNoAxesGantt onClick={()=> setCollapsed(false)}/> }
         {!collapsed && (
-          <div>
-            <h1 className="text-xl">Msg Zone</h1>
-          </div>
+          <>
+            <img src="/assets/logo.png" alt="msgzone logo" className="w-9" />
+
+            <div>
+              <h1 className="text-xl">Msg Zone</h1>
+            </div>
+          </>
         )}
       </div>
-      <Divider className="mb-8" />
+      
+      <Divider className="mb-5" />
       <Menu
         className="no-highlight"
         theme="light"
         defaultSelectedKeys={["1"]}
         mode="inline"
         onClick={({ key }) => {
+          if(key =="9" )setCollapsed(true)
           if (key === "1") router.push("/");
           if (key === "2") router.push("/send");
           if (key === "3") router.push("/reports");
@@ -94,9 +107,8 @@ const Sidebar: React.FC = () => {
                 .then((res) => {
                   console.log(res.data);
                   setTimeout(() => {
-                    window.location.reload()
+                    window.location.reload();
                   }, 500);
-                
                 })
                 .catch((err) => {
                   console.log(err);

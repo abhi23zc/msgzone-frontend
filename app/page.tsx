@@ -10,6 +10,7 @@ import {
   CircleCheck,
   MessageSquareIcon,
   Timer,
+  User,
   WatchIcon,
 } from "lucide-react";
 import { useEffect, useState, type FC } from "react";
@@ -46,7 +47,6 @@ const Home: FC = () => {
       width: 400,
     });
 
-    
     const timer = setInterval(() => {
       secondsToGo -= 1;
       instance.update({
@@ -90,7 +90,7 @@ const Home: FC = () => {
 
       <section className="w-full p-4 md:p-6 bg-gray-50 overflow-y-auto min-h-screen">
         <div className="w-full max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 transform transition-all hover:shadow-lg">
+          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 transform transition-all hover:shadow-lg relative">
             <div className="border-b pb-4 mb-4">
               <h2 className="text-2xl font-bold text-gray-900">Current Plan</h2>
               <p className="text-sm text-gray-600">
@@ -179,6 +179,20 @@ const Home: FC = () => {
                 ))}
               </div>
             </div>
+
+<div className="absolute top-2 right-2 md:top-5 md:right-5 flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 md:shadow-md shadow-sm ">
+  <div className="bg-blue-100 p-2 rounded-full">
+    <User className="w-4 h-4 text-blue-600" />
+  </div>
+  <div className="flex flex-col">
+    <span className="text-sm font-medium text-gray-900 ">
+      {user?.data?.user?.name || 'Guest'}
+    </span>
+    <span className="text-xs text-gray-500 hidden md:block">
+      {user?.data?.user?.email}
+    </span>
+  </div>
+</div>
           </div>
         </div>
 
@@ -195,29 +209,31 @@ const Home: FC = () => {
                 </p>
               </div>
 
-              <Button
-                onClick={handleSubmit}
-                color="purple"
-                variant="solid"
-                size="middle"
-                loading={loading}
-              >
-                Add Device
-              </Button>
+              <div className="flex flex-wrap gap-0">
+                <Button
+                  onClick={handleSubmit}
+                  color="purple"
+                  variant="solid"
+                  size="middle"
+                  loading={loading}
+                >
+                  Add Device
+                </Button>
 
-              <Button
-                onClick={handleRefresh}
-                color="purple"
-                variant="solid"
-                size="middle"
-                className="ml-2"
-                loading={authLoading}
-              >
-                Refresh
-              </Button>
+                <Button
+                  onClick={handleRefresh}
+                  color="purple"
+                  variant="solid"
+                  size="middle"
+                  className="ml-2"
+                  loading={authLoading}
+                >
+                  Refresh
+                </Button>
+              </div>
             </div>
 
-            <div className="p-6 space-y-2 h-96 overflow-y-scroll">
+            <div className="p-6 space-y-2 mb-5 overflow-y-scroll">
               {user?.data?.user?.devices?.length > 0 ? (
                 user.data.user.devices.map((device: any, index: number) => {
                   return (
@@ -235,7 +251,10 @@ const Home: FC = () => {
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-gray-400">•</span>
                               <span className="text-sm text-gray-500">
-                                Last active: {new Date(device?.lastConnected).toLocaleString()}
+                                Last active:{" "}
+                                {new Date(
+                                  device?.lastConnected
+                                ).toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -299,6 +318,10 @@ const Home: FC = () => {
                   Status of your recent messages
                 </p>
 
+                <p className="text-gray-500 mt-1">
+                  Today Messages:{" "}
+                  {Array.isArray(allMessages) ? allMessages.length : 0}
+                </p>
                 <p className="text-gray-500 mt-1">
                   Total Messages:{" "}
                   {Array.isArray(allMessages) ? allMessages.length : 0}

@@ -85,7 +85,12 @@ const MessageList: React.FC = () => {
                   title={`From: ${item.sendFrom || 'Unknown'} To: ${item.sendTo || 'Unknown'}`}
                   description={
                     <>
-                      <div>{item.text}</div>
+                      <div>
+                        {Array.isArray(item?.text?.split(' ')) && 
+                         item.text.split(' ').length > 30
+                          ? item.text.split(' ').slice(0, 30).join(' ') + '...'
+                          : item.text}
+                      </div>
                       <small>{new Date(item.createdAt).toLocaleString()}</small>
                     </>
                   }
