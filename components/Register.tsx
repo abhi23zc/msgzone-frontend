@@ -7,6 +7,7 @@ import Link from "next/link";
 import SocialIcons from "./Social.Icons";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 type FieldType = {
   name?: string;
@@ -29,8 +30,11 @@ function RegisterPage() {
         phone: phone || "",
         password: password || "",
       });
-      if(res != null)
-      router.push("/login")
+      console.log(res)
+      if(res != null){
+        toast.success("Registration successful")
+        router.push("/login")
+      }
     } catch (error) {
       console.log("Error in register", error);
     }

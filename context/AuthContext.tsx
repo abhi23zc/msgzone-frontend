@@ -67,7 +67,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null)
       setLoading(true);
       const res = await api.post("/auth/register", { email, password, name, whatsappNumber: phone,  businessName:"msgzone"});
-      setUser(res.data);
       // console.log("Data", res.data);
       return res.data;
     } catch (error:any) {
