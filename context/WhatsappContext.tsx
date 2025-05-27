@@ -16,7 +16,16 @@ interface WhatsappContextProps {
     message,
     deviceId,
   }: {
-    number: number;
+    number: string;
+    message: string;
+    deviceId: string;
+  }) => Promise<void>;
+  sendBulkMessage: ({
+    numbers,
+    message,
+    deviceId,
+  }: {
+    numbers: [];
     message: string;
     deviceId: string;
   }) => Promise<void>;
@@ -32,6 +41,7 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   loading: false,
   startSession: async () => {},
   sendMessage: async () => {},
+  sendBulkMessage: async () => {},
   getAllMessages: async () => {},
   getTodayMessages: async () => {},
   allMessages: [],
@@ -118,7 +128,7 @@ export const WhatsappProvider = ({
     message,
     deviceId,
   }: {
-    number: number;
+    number: string;
     message: string;
     deviceId: string;
   }) => {
@@ -134,6 +144,34 @@ export const WhatsappProvider = ({
       return res?.data;
     } catch (error) {
       setError("Error while sending message");
+      console.log(error);
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const sendBulkMessage = async ({
+    numbers,
+    message,
+    deviceId,
+  }: {
+    numbers: [];
+    message: string;
+    deviceId: string;
+  }) => {
+    try {
+      setError("");
+      setLoading(true);
+      const res = await api.post("/wp/sendBulk", {
+        numbers,
+        message,
+        deviceId,
+      });
+      setLoading(false);
+      return res?.data;
+      
+    } catch (error) {
+      setError("Error while sending bulk messages");
       console.log(error);
       setLoading(false);
       return null;
@@ -184,6 +222,7 @@ export const WhatsappProvider = ({
         allMessages,
         startSession,
         sendMessage,
+        sendBulkMessage,
         getAllMessages,
         getTodayMessages,
         error,

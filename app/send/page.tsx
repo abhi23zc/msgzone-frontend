@@ -6,27 +6,41 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import toast from "react-hot-toast";
+import PhoneNumberInput from "./NumberInput";
 
 const { TextArea } = Input;
 
 function Send() {
   const [form] = Form.useForm();
   const { user } = useAuth();
-  const { loading, sendMessage, error } = useWhatsapp();
+  const { loading, sendMessage, sendBulkMessage, error } = useWhatsapp();
   let devices = user?.data?.user?.devices;
   const onFinish = async (values: any) => {
-    
-    const msg:any = await sendMessage({
-      number: values.recipientNumber,
-      message: values.message,
-      deviceId: values.fromNumber,
-    })
-    if(msg) {
-
-      toast.success("Message sent successfully");
+    const numbers = values.recipientNumber;
+    console.log(numbers);
+    if (numbers.length === 0) {
+      toast.error("Please enter at least one recipient's WhatsApp number");
+      return;
     }
-      else toast.error("Error while sending message");
-
+    if (numbers.length == 1) {
+      const msg: any = await sendMessage({
+        number: numbers[0] || "",
+        message: values.message,
+        deviceId: values.fromNumber,
+      });
+      if (msg) {
+        toast.success("Message sent successfully");
+      } else toast.error("Error while sending message");
+    } else {
+      const msg: any = await sendBulkMessage({
+        numbers: numbers,
+        message: values.message,
+        deviceId: values.fromNumber,
+      });
+      if (msg) {
+        toast.success("Messages sent successfully");
+      } else toast.error("Error while sending message");
+    }
   };
 
   useEffect(() => {
@@ -74,7 +88,7 @@ function Send() {
             </Select>
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             label="Recipient Number"
             name="recipientNumber"
             rules={[
@@ -88,6 +102,20 @@ function Send() {
               placeholder="Enter recipient's WhatsApp number"
               className="w-full"
             />
+          </Form.Item> */}
+
+          <Form.Item
+            label="Recipient Numbers"
+            name="recipientNumber"
+            rules={[
+              {
+                required: true,
+                message:
+                  "Please enter at least one recipient's WhatsApp number",
+              },
+            ]}
+          >
+            <PhoneNumberInput form={form} />
           </Form.Item>
 
           <Form.Item
@@ -126,7 +154,12 @@ function Send() {
           </Form.Item>
 
           <div className="flex justify-end gap-4 mt-6">
-            <Button loading={loading} type="primary" htmlType="submit" icon={<SendOutlined />}>
+            <Button
+              loading={loading}
+              type="primary"
+              htmlType="submit"
+              icon={<SendOutlined />}
+            >
               Send Message
             </Button>
           </div>
