@@ -24,8 +24,8 @@ const Home: FC = () => {
     TimeoutInterval,
     allMessages,
     getAllMessages,
-    getTodayMessages, 
-    todayMessages
+    getTodayMessages,
+    todayMessages,
   } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
@@ -79,6 +79,7 @@ const Home: FC = () => {
       toast.error("Errow while refreshing");
     }
   };
+
   return (
     <main className="min-h-screen w-full bg-[url('/assets/bg.png')] bg-cover bg-center bg-no-repeat flex ">
       <CustomModal
@@ -182,19 +183,19 @@ const Home: FC = () => {
               </div>
             </div>
 
-<div className="absolute top-2 right-2 md:top-5 md:right-5 flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 md:shadow-md shadow-sm ">
-  <div className="bg-blue-100 p-2 rounded-full">
-    <User className="w-4 h-4 text-blue-600" />
-  </div>
-  <div className="flex flex-col">
-    <span className="text-sm font-medium text-gray-900 ">
-      {user?.data?.user?.name || 'Guest'}
-    </span>
-    <span className="text-xs text-gray-500 hidden md:block">
-      {user?.data?.user?.email}
-    </span>
-  </div>
-</div>
+            <div className="absolute top-2 right-2 md:top-5 md:right-5 flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 md:shadow-md shadow-sm ">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <User className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900 ">
+                  {user?.data?.user?.name || "Guest"}
+                </span>
+                <span className="text-xs text-gray-500 hidden md:block">
+                  {user?.data?.user?.email}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -304,7 +305,35 @@ const Home: FC = () => {
                   );
                 })
               ) : (
-                <p>No devices found.</p>
+                <div className="text-center p-10 bg-white ">
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="mx-auto w-40 md:w-48 lg:w-56 mb-4"
+                  >
+                    <source 
+                      src="/assets/no_device.webm" 
+                      type="video/webm"
+                    />
+            
+                    <img
+                      src="/assets/qr-illustration.svg"
+                      alt="Connect Device"
+                      className="mx-auto w-40 mb-4"
+                    />
+                  </video>
+                  <h2 className="text-xl font-semibold">
+                    No Devices Connected
+                  </h2>
+                  <p className="text-gray-600 mt-2">
+                    To start sending messages, connect your WhatsApp device now.
+                  </p>
+                  <button className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    Add Device Now
+                  </button>
+                </div>
               )}
             </div>
           </div>

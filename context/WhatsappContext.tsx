@@ -146,12 +146,9 @@ export const WhatsappProvider = ({
       setAllMessages([]);
       setLoading(true);
       const res = await api.get("/wp/getAllMessages");
+      console.log(res)
       const msgArray = res?.data?.data;
-      const allMsgs = msgArray?.reduce((acc: any[], { messages }: any) => {
-        return [...acc, ...messages];
-      }, []);
-
-      setAllMessages(allMsgs || []);
+      setAllMessages(msgArray || []);
       
     } catch (error) {
       setError("Error while fetching messages");
