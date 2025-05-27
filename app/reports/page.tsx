@@ -80,25 +80,7 @@ function MessageReports() {
   //ℹ️  Improve Logic
 
   useEffect(() => {
-    console.log(allMessages);
-    if (allMessages.length > 0) {
-      const uniqueMessages = allMessages.reduce<typeof allMessages>(
-        (acc, current) => {
-          const exists = acc.find((item) => item._id === current._id);
-          if (!exists) {
-            acc.push(current);
-          }
-          return acc;
-        },
-        []
-      );
-      const sortedMessages = [...uniqueMessages].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      setmsgData(sortedMessages);
-    }
+    setmsgData(allMessages);
   }, [allMessages]);
   return (
     <section className="md:my-10 md:mx-10 m-3 w-full">
