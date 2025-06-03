@@ -21,8 +21,11 @@ import { useEffect, useState } from "react";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import toast from "react-hot-toast";
 import PhoneUploaderInput from "./UploadContact";
-import ReactQuill from "react-quill";
+import dynamic from "next/dynamic";
 const { TextArea } = Input;
+
+// Dynamically import ReactQuill with SSR disabled
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 interface AttachmentType {
   file: File;
