@@ -30,11 +30,42 @@ interface WhatsappContextProps {
   }) => Promise<void>;
   sendBulkMessage: ({
     numbers,
+    timer,
     message,
     deviceId,
     attachments,
   }: {
     numbers: [];
+    timer:string;
+    message: string;
+    deviceId: string;
+    attachments?: AttachmentType[];
+  }) => Promise<void>;
+
+  sendScheduleMessage: ({
+    number,
+    schedule,
+    message,
+    deviceId,
+    attachments,
+  }: {
+    number: string;
+    schedule: string;
+    message: string;
+    deviceId: string;
+    attachments?: AttachmentType[];
+  }) => Promise<void>;
+  sendScheduleBulk :({
+    numbers,
+    timer,
+    schedule,
+    message,
+    deviceId,
+    attachments,
+  }: {
+    numbers: string;
+    timer: string;
+    schedule: string;
     message: string;
     deviceId: string;
     attachments?: AttachmentType[];
@@ -51,7 +82,9 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   loading: false,
   startSession: async () => {},
   sendMessage: async () => {},
+  sendScheduleMessage: async () => {},
   sendBulkMessage: async () => {},
+  sendScheduleBulk : async () => {},
   getAllMessages: async () => {},
   getTodayMessages: async () => {},
   allMessages: [],
@@ -179,13 +212,64 @@ export const WhatsappProvider = ({
     }
   };
 
-  const sendBulkMessage = async ({
-    numbers,
+  const sendScheduleMessage = async ({
+    number,
+    schedule,
     message,
     deviceId,
     attachments = [],
   }: {
+    number: string;
+    schedule:string;
+    message: string;
+    deviceId: string;
+    attachments?: AttachmentType[];
+  }) => {
+    try {
+      setError("");
+      setLoading(true);
+      
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("message", message);
+      formData.append("deviceId", deviceId);
+      formData.append("schedule", schedule);
+      
+      // Add attachments if any
+      if (attachments && attachments.length > 0) {
+        // Add each file and its caption
+        attachments.forEach((attachment, index) => {
+          formData.append(`attachments`, attachment.file);
+          formData.append(`captions`, attachment.caption || "");
+        });
+      }
+      
+      const res = await api.post("/wp/scheduleSingle", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      
+      setLoading(false);
+      return res?.data;
+    } catch (error) {
+      setError("Error while sending message");
+      console.log(error);
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const sendBulkMessage = async ({
+    numbers,
+    message,
+    deviceId,
+    timer,
+    attachments = [],
+  }: {
     numbers: [];
+    timer:string;
     message: string;
     deviceId: string;
     attachments?: AttachmentType[];
@@ -201,7 +285,7 @@ export const WhatsappProvider = ({
       formData.append("numbers", JSON.stringify(numbers));
       formData.append("message", message);
       formData.append("deviceId", deviceId);
-      formData.append("timer", "10");
+      formData.append("timer", timer);
       
       // Add attachments if any
       if (attachments && attachments.length > 0) {
@@ -223,6 +307,58 @@ export const WhatsappProvider = ({
       return res?.data;
     } catch (error) {
       setError("Error while sending bulk messages");
+      console.log(error);
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const sendScheduleBulk = async ({
+    numbers,
+    timer,
+    schedule,
+    message,
+    deviceId,
+    attachments = [],
+  }: {
+    numbers: string;
+    timer:string;
+    schedule:string;
+    message: string;
+    deviceId: string;
+    attachments?: AttachmentType[];
+  }) => {
+    try {
+      setError("");
+      setLoading(true);
+      
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      formData.append("numbers", JSON.stringify(numbers));
+      formData.append("message", message);
+      formData.append("deviceId", deviceId);
+      formData.append("schedule", schedule);
+      formData.append("timer", timer);
+      
+      // Add attachments if any
+      if (attachments && attachments.length > 0) {
+        // Add each file and its caption
+        attachments.forEach((attachment, index) => {
+          formData.append(`attachments`, attachment.file);
+          formData.append(`captions`, attachment.caption || "");
+        });
+      }
+      
+      const res = await api.post("/wp/scheduleBulk", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      
+      setLoading(false);
+      return res?.data;
+    } catch (error) {
+      setError("Error while sending message");
       console.log(error);
       setLoading(false);
       return null;
@@ -279,6 +415,8 @@ export const WhatsappProvider = ({
         error,
         TimeoutInterval,
         todayMessages,
+        sendScheduleMessage,
+        sendScheduleBulk
       }}
     >
       {children}

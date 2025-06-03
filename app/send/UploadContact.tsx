@@ -3,6 +3,7 @@
 import { Input, Tag, Tooltip, Upload } from "antd";
 import { CloseOutlined, InboxOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
+import { useState } from "react";
 
 interface Props {
   value?: string[];
@@ -13,6 +14,7 @@ const MAX_VISIBLE_TAGS = 3;
 
 export default function PhoneUploaderInput({ value = [], onChange }: Props) {
   const numbers = value;
+  const [inputValue, setInputValue] = useState("");
 
   const triggerChange = (newTags: string[]) => {
     onChange?.(newTags); // sync with Form
@@ -29,7 +31,7 @@ export default function PhoneUploaderInput({ value = [], onChange }: Props) {
     const inputVal = e.target.value.trim();
     if (!inputVal) return;
     addNumber(inputVal);
-    e.target.value = "";
+    setInputValue("")
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -109,6 +111,8 @@ export default function PhoneUploaderInput({ value = [], onChange }: Props) {
       </Upload.Dragger>
 
       <Input
+        value={inputValue} 
+        onChange={(e) => setInputValue(e.target.value)} 
         onKeyDown={handleKeyDown}
         onBlur={handleInputConfirm}
         onPaste={handlePaste}

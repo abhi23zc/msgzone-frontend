@@ -1,10 +1,20 @@
 "use client";
 
-import { Form, Input, Select, Button, Upload, message, Image } from "antd";
+import {
+  Form,
+  Input,
+  Select,
+  Button,
+  Upload,
+  message,
+  Image,
+  DatePicker,
+} from "antd";
 import {
   UploadOutlined,
   SendOutlined,
   DeleteOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -12,7 +22,6 @@ import { useWhatsapp } from "@/context/WhatsappContext";
 import toast from "react-hot-toast";
 import PhoneUploaderInput from "./UploadContact";
 import ReactQuill from "react-quill";
-
 const { TextArea } = Input;
 
 interface AttachmentType {
@@ -24,42 +33,97 @@ interface AttachmentType {
 function Send() {
   const [form] = Form.useForm();
   const { user } = useAuth();
-  const { loading, sendMessage, sendBulkMessage, error } = useWhatsapp();
+  const { loading, sendMessage, sendBulkMessage, error, sendScheduleMessage, sendScheduleBulk } =
+    useWhatsapp();
   let devices = user?.data?.user?.devices;
   const [attachments, setAttachments] = useState<AttachmentType[]>([]);
-  const onFinish = async (values: any) => {
-    const numbers = values.recipientNumber;
-    console.log(numbers);
-    if (numbers.length === 0) {
-      toast.error("Please enter at least one recipient's WhatsApp number");
-      return;
+
+  const onSchedule = async (values: any) => {
+    try {
+      console.log("Schedule");
+      const numbers = values.recipientNumber;
+      if (numbers.length === 0) {
+        toast.error("Please enter at least one recipient's WhatsApp number");
+        return;
+      }
+      if (numbers.length == 1) {
+        const msg: any = await sendScheduleMessage({
+          number: numbers[0] || "",
+          schedule: values?.schedule?.toISOString(),
+          message: values.message,
+          deviceId: values.fromNumber,
+          attachments: attachments,
+        });
+        console.log(msg);
+        if (msg) {
+          toast.success("Message scheduled successfully");
+          // Clear attachments after successful send
+          setAttachments([]);
+          form.resetFields(["message"]);
+        }
+      }
+      else{
+        const msg: any = await sendScheduleBulk({
+          numbers: numbers || [],
+          schedule: values?.schedule?.toISOString(),
+          message: values.message,
+          deviceId: values.fromNumber,
+          attachments: attachments,
+          timer: values.timer || 2,
+        });
+        console.log(msg);
+        if (msg) {
+          toast.success("Message scheduled successfully");
+          // Clear attachments after successful send
+          setAttachments([]);
+          form.resetFields(["message"]);
+        }
+      }
+    } catch (error) {
+      toast.error("Error while scheduling message");
     }
-    if (numbers.length == 1) {
-      const msg: any = await sendMessage({
-        number: numbers[0] || "",
-        message: values.message,
-        deviceId: values.fromNumber,
-        attachments: attachments,
-      });
-      if (msg) {
-        toast.success("Message sent successfully");
-        // Clear attachments after successful send
-        setAttachments([]);
-        form.resetFields(["message"]);
-      } else toast.error("Error while sending message");
+  };
+
+  const onFinish = async (values: any) => {
+   
+    const numbers = values.recipientNumber;
+    console.log(values?.schedule?.toISOString());
+    if (values?.schedule?.toISOString()) {
+      onSchedule(values);
     } else {
-      const msg: any = await sendBulkMessage({
-        numbers: numbers,
-        message: values.message,
-        deviceId: values.fromNumber,
-        attachments: attachments,
-      });
-      if (msg) {
-        toast.success("Messages sent successfully");
-        // Clear attachments after successful send
-        setAttachments([]);
-        form.resetFields(["message"]);
-      } else toast.error("Error while sending message");
+      // console.log(numbers);
+      if (numbers.length === 0) {
+        toast.error("Please enter at least one recipient's WhatsApp number");
+        return;
+      }
+      if (numbers.length == 1) {
+        const msg: any = await sendMessage({
+          number: numbers[0] || "",
+          message: values.message,
+          deviceId: values.fromNumber,
+          attachments: attachments,
+        });
+        if (msg) {
+          toast.success("Message sent successfully");
+          // Clear attachments after successful send
+          setAttachments([]);
+          form.resetFields(["message"]);
+        } else toast.error("Error while sending message");
+      } else {
+        const msg: any = await sendBulkMessage({
+          numbers: numbers,
+          message: values.message,
+          deviceId: values.fromNumber,
+          attachments: attachments,
+          timer: values.timer || 2,
+        });
+        if (msg) {
+          toast.success("Messages sent successfully");
+          // Clear attachments after successful send
+          setAttachments([]);
+          form.resetFields(["message"]);
+        } else toast.error("Error while sending message");
+      }
     }
   };
 
@@ -125,12 +189,11 @@ function Send() {
 
   const modules = {
     toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],       
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],     // lists
-                                               
-    ]
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }], // lists
+    ],
   };
-  
+
 
   return (
     <section className="md:my-10 md:mx-10 m-3 w-full">
@@ -219,7 +282,7 @@ function Send() {
               </div>
             }
           >
-            <ReactQuill theme="snow" modules={modules}  />
+            <ReactQuill theme="snow" modules={modules} />
           </Form.Item>
 
           <Form.Item label="Attachments">
@@ -305,6 +368,23 @@ function Send() {
             >
               Send Message
             </Button>
+
+            {/* <Button
+              loading={loading}
+              type="primary"
+              htmlType="submit"
+              icon={<ClockCircleOutlined />}
+            >
+              Schedule
+            </Button> */}
+
+            <Form.Item name="schedule" rules={[]}>
+              <DatePicker showTime format="YYYY-MM-DDTHH:mm:ssZ" />
+            </Form.Item>
+            
+            <Form.Item name="timer" rules={[]}>
+            <Input placeholder="Sleep Timer (sec)" className="max-w-36" />
+            </Form.Item>
           </div>
         </Form>
       </div>
