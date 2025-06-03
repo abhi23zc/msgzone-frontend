@@ -8,6 +8,12 @@ const delay = async (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
+interface AttachmentType {
+  file: File;
+  caption: string;
+  previewUrl?: string;
+}
+
 interface WhatsappContextProps {
   loading: boolean;
   startSession: (deviceId: string | "") => Promise<void>;
@@ -15,19 +21,23 @@ interface WhatsappContextProps {
     number,
     message,
     deviceId,
+    attachments,
   }: {
     number: string;
     message: string;
     deviceId: string;
+    attachments?: AttachmentType[];
   }) => Promise<void>;
   sendBulkMessage: ({
     numbers,
     message,
     deviceId,
+    attachments,
   }: {
     numbers: [];
     message: string;
     deviceId: string;
+    attachments?: AttachmentType[];
   }) => Promise<void>;
   getAllMessages: () => Promise<void>;
   getTodayMessages: () => Promise<void>;
@@ -127,19 +137,38 @@ export const WhatsappProvider = ({
     number,
     message,
     deviceId,
+    attachments = [],
   }: {
     number: string;
     message: string;
     deviceId: string;
+    attachments?: AttachmentType[];
   }) => {
     try {
       setError("");
       setLoading(true);
-      const res = await api.post("/wp/sendSingle", {
-        number,
-        message,
-        deviceId,
+      
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      formData.append("number", number);
+      formData.append("message", message);
+      formData.append("deviceId", deviceId);
+      
+      // Add attachments if any
+      if (attachments && attachments.length > 0) {
+        // Add each file and its caption
+        attachments.forEach((attachment, index) => {
+          formData.append(`attachments`, attachment.file);
+          formData.append(`captions`, attachment.caption || "");
+        });
+      }
+      
+      const res = await api.post("/wp/sendSingle", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+      
       setLoading(false);
       return res?.data;
     } catch (error) {
@@ -154,22 +183,44 @@ export const WhatsappProvider = ({
     numbers,
     message,
     deviceId,
+    attachments = [],
   }: {
     numbers: [];
     message: string;
     deviceId: string;
+    attachments?: AttachmentType[];
   }) => {
     try {
       setError("");
       setLoading(true);
-      const res = await api.post("/wp/sendBulk", {
-        numbers,
-        message,
-        deviceId,
+      
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      
+      // Append numbers as JSON string
+      formData.append("numbers", JSON.stringify(numbers));
+      formData.append("message", message);
+      formData.append("deviceId", deviceId);
+      formData.append("timer", "10");
+      
+      // Add attachments if any
+      if (attachments && attachments.length > 0) {
+        
+        // Add each file and its caption
+        attachments.forEach((attachment, index) => {
+          formData.append(`attachments`, attachment.file);
+          formData.append(`captions`, attachment.caption || "");
+        });
+      }
+      
+      const res = await api.post("/wp/sendBulk", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+      
       setLoading(false);
       return res?.data;
-      
     } catch (error) {
       setError("Error while sending bulk messages");
       console.log(error);
