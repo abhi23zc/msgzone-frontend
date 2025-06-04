@@ -34,7 +34,7 @@ export default function RootLayout({
             <div className="flex ">
               <Toaster/>
               <Sidebar />
-              {/* <Analytics/> */}
+              <Analytics/>
               {children}
             </div>
           </WhatsappProvider>
