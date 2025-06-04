@@ -22,6 +22,7 @@ import { useWhatsapp } from "@/context/WhatsappContext";
 import toast from "react-hot-toast";
 import PhoneUploaderInput from "./UploadContact";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 const { TextArea } = Input;
 
 // Dynamically import ReactQuill with SSR disabled
@@ -278,10 +279,19 @@ function Send() {
             name="message"
             rules={[{ required: true, message: "Please enter your message" }]}
             extra={
-              <div className="flex justify-end">
-                <Button type="link" className="p-0">
-                  Use Template
-                </Button>
+              <div className="flex justify-end mt-5 animate-pulse">
+                <Link href={"/ai/template"} target="_blank">
+                  <Button 
+                    type="primary"
+                    className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 
+                    transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl
+                    rounded-full  py-2 text-white font-medium flex items-center gap-2"
+                  >
+                    <span className="text-lg">✨</span>
+                    Use AI Generated Template
+                  
+                  </Button>
+                </Link>
               </div>
             }
           >
