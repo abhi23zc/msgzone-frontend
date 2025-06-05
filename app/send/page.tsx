@@ -37,8 +37,14 @@ interface AttachmentType {
 function Send() {
   const [form] = Form.useForm();
   const { user } = useAuth();
-  const { loading, sendMessage, sendBulkMessage, error, sendScheduleMessage, sendScheduleBulk } =
-    useWhatsapp();
+  const {
+    loading,
+    sendMessage,
+    sendBulkMessage,
+    error,
+    sendScheduleMessage,
+    sendScheduleBulk,
+  } = useWhatsapp();
   let devices = user?.data?.user?.devices;
   const [attachments, setAttachments] = useState<AttachmentType[]>([]);
 
@@ -65,8 +71,7 @@ function Send() {
           setAttachments([]);
           form.resetFields(["message"]);
         }
-      }
-      else{
+      } else {
         const msg: any = await sendScheduleBulk({
           numbers: numbers || [],
           schedule: values?.schedule?.toISOString(),
@@ -89,7 +94,6 @@ function Send() {
   };
 
   const onFinish = async (values: any) => {
-   
     const numbers = values.recipientNumber;
     console.log(values?.schedule?.toISOString());
     if (values?.schedule?.toISOString()) {
@@ -198,7 +202,6 @@ function Send() {
     ],
   };
 
-
   return (
     <section className="md:my-10 md:mx-10 m-3 w-full">
       <h1 className="text-3xl font-semibold mb-6">Send Message</h1>
@@ -278,25 +281,16 @@ function Send() {
             label="Message"
             name="message"
             rules={[{ required: true, message: "Please enter your message" }]}
-            extra={
-              <div className="flex justify-end mt-5 animate-pulse">
-                <Link href={"/ai/template"} target="_blank">
-                  <Button 
-                    type="primary"
-                    className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 
-                    transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl
-                    rounded-full  py-2 text-white font-medium flex items-center gap-2"
-                  >
-                    <span className="text-lg">✨</span>
-                    Use AI Generated Template
-                  
-                  </Button>
-                </Link>
-              </div>
-            }
           >
-            <ReactQuill theme="snow" modules={modules} />
+            <ReactQuill theme="snow" modules={modules} className="h-32" />
           </Form.Item>
+          <div className="flex justify-end animate-pulse">
+            <Link href={"/ai/template"} target="_blank">
+              <Button type="link" className="mt-5">
+                Use AI Generated Template
+              </Button>
+            </Link>
+          </div>
 
           <Form.Item label="Attachments">
             <div className="space-y-4">
@@ -372,33 +366,48 @@ function Send() {
             </div>
           </Form.Item>
 
-          <div className="flex justify-end gap-4 mt-6">
-            <Button
-              loading={loading}
-              type="primary"
-              htmlType="submit"
-              icon={<SendOutlined />}
-            >
-              Send Message
-            </Button>
+          <div className="mt-8 p-6  shadow-sm flex flex-wrap gap-5" >
+           
+              <div className="flex items-center gap-4">
+                <Button
+                  loading={loading}
+                  type="primary"
+                  htmlType="submit"
+                  icon={<SendOutlined />}
+                 className="h-10"
+                >
+                  Send Message
+                </Button>
+              </div>
 
-            {/* <Button
-              loading={loading}
-              type="primary"
-              htmlType="submit"
-              icon={<ClockCircleOutlined />}
-            >
-              Schedule
-            </Button> */}
+              <div className="flex flex-wrap items-center gap-4">
+                <Form.Item 
+                  name="schedule" 
+                  rules={[]}
+                  className="mb-0"
+                >
+                  <DatePicker 
+                    showTime 
+                    format="YYYY-MM-DDTHH:mm:ssZ"
+                    className="h-10 min-w-[240px] text-base hover:border-blue-500 focus:border-blue-500" 
+                    placeholder="Schedule Message (Optional)"
+                  />
+                </Form.Item>
 
-            <Form.Item name="schedule" rules={[]}>
-              <DatePicker showTime format="YYYY-MM-DDTHH:mm:ssZ" />
-            </Form.Item>
-            
-            <Form.Item name="timer" rules={[]}>
-            <Input placeholder="Sleep Timer (sec)" className="max-w-36" />
-            </Form.Item>
-          </div>
+                <Form.Item 
+                  name="timer" 
+                  rules={[]}
+                  className="mb-0"
+                >
+                  <Input 
+                    prefix={<ClockCircleOutlined className="text-gray-400" />}
+                    placeholder="Sleep Timer (sec)" 
+                    className="h-10 max-w-36 text-base hover:border-blue-500 focus:border-blue-500"
+                  />
+                </Form.Item>
+              </div>
+            </div>
+          {/* </div> */}
         </Form>
       </div>
     </section>
