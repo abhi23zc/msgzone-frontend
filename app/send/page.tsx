@@ -44,6 +44,7 @@ function Send() {
     error,
     sendScheduleMessage,
     sendScheduleBulk,
+    
   } = useWhatsapp();
   let devices = user?.data?.user?.devices;
   const [attachments, setAttachments] = useState<AttachmentType[]>([]);
@@ -126,7 +127,9 @@ function Send() {
           timer: values.timer || 2,
         });
         if (msg) {
+          
           toast.success("Messages sent successfully");
+          
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
@@ -327,7 +330,7 @@ function Send() {
                           <Image
                             src={attachment.previewUrl}
                             alt={attachment.file.name}
-                            className="object-cover w-full h-full rounded"
+                            className="object-cover w-full h-full rounded "
                             preview={{ mask: "Preview" }}
                           />
                         ) : (

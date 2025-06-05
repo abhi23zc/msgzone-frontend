@@ -77,7 +77,10 @@ function MessageReports() {
     }
   };
 
-  //ℹ️  Improve Logic
+  useEffect(() => {
+    getAllMessages();
+  }, [])
+  
 
   useEffect(() => {
     setmsgData(allMessages);

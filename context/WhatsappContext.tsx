@@ -71,7 +71,11 @@ interface WhatsappContextProps {
     attachments?: AttachmentType[];
   }) => Promise<void>;
   getAllMessages: () => Promise<void>;
+  getAllMessagesCount: () => Promise<void>;
   getTodayMessages: () => Promise<void>;
+  getTodayMessagesCount: () => Promise<void>;
+  allMessagesCount: number;
+  todayMessagesCount: number;
   allMessages: any[];
   todayMessages: any[];
   error: string | "";
@@ -86,7 +90,11 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   sendBulkMessage: async () => {},
   sendScheduleBulk : async () => {},
   getAllMessages: async () => {},
+  getAllMessagesCount: async () => {},
   getTodayMessages: async () => {},
+  getTodayMessagesCount: async () => {},
+  allMessagesCount: 0,
+  todayMessagesCount: 0,
   allMessages: [],
   todayMessages: [],
   error: "",
@@ -103,6 +111,8 @@ export const WhatsappProvider = ({
   const [allMessages, setAllMessages] = useState<any>([]);
   const [todayMessages, setTodayMessages] = useState<any>([]);
   const [TimeoutInterval, setTimeoutInterval] = useState<any>(null);
+  const [allMessagesCount, setallMessagesCount] = useState<number>(0)
+  const [todayMessagesCount, setTodayMessagesCount] = useState<number>(0)
   const {checkUser, user} = useAuth()
 
   const startSession = async (deviceId: string | "") => {
@@ -139,7 +149,7 @@ export const WhatsappProvider = ({
       setError("");
       setLoading(true);
       const res = await api.post("/wp/connect", { deviceId });
-      console.log(res?.data);
+      // console.log(res?.data);
       if (res?.data?.status) {
         const timeoutInterval = setTimeout(async() => {
           setLoading(false);
@@ -371,7 +381,7 @@ export const WhatsappProvider = ({
       setAllMessages([]);
       setLoading(true);
       const res = await api.get("/wp/getAllMessages");
-      console.log(res)
+      // console.log(res)
       const msgArray = res?.data?.data;
       setAllMessages(msgArray || []);
       
@@ -381,6 +391,38 @@ export const WhatsappProvider = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  
+  const getAllMessagesCount = async () => {
+    try {
+      setError("");
+      setAllMessages([]);
+      const res = await api.get("/wp/getAllMessagesCount");
+      // if(res.status == 200){
+        console.log("Total", res)  
+        setallMessagesCount(res?.data?.data)
+      // }
+    } catch (error) {
+      setError("Error while fetching messages");
+      console.log(error);
+    } 
+  };
+
+  const getTodayMessagesCount = async () => {
+    try {
+      setError("");
+      setAllMessages([]);
+      const res = await api.get("/wp/getTodayMessagesCount");
+      // if(res.status == 200){
+      console.log("Today", res)
+
+      setTodayMessagesCount(res?.data?.data)
+      // }
+    } catch (error) {
+      setError("Error while fetching messages");
+      console.log(error);
+    } 
   };
 
   
@@ -416,7 +458,11 @@ export const WhatsappProvider = ({
         TimeoutInterval,
         todayMessages,
         sendScheduleMessage,
-        sendScheduleBulk
+        sendScheduleBulk,
+        allMessagesCount,
+        todayMessagesCount,
+        getAllMessagesCount,
+        getTodayMessagesCount
       }}
     >
       {children}

@@ -7,7 +7,7 @@ import { useWhatsapp } from "@/context/WhatsappContext";
 const PAGE_SIZE = 10;
 
 const MessageList: React.FC = () => {
-  const { loading, getAllMessages ,getTodayMessages , todayMessages} = useWhatsapp();
+  const { loading,getTodayMessages , todayMessages, getTodayMessagesCount, getAllMessagesCount} = useWhatsapp();
   const [uniqueSortedMessages, setUniqueSortedMessages] = useState<any[]>([]);
   const [displayedMessages, setDisplayedMessages] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -39,8 +39,10 @@ const MessageList: React.FC = () => {
   },[todayMessages])
 
   useEffect(() => {
-    getAllMessages();
     getTodayMessages()
+    getTodayMessagesCount();
+    getAllMessagesCount();
+    
     
   }, []);
 

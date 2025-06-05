@@ -4,7 +4,7 @@ import CustomModal from "@/components/Modal";
 import ProtectedRoute from "@/components/Protected";
 import { useAuth } from "@/context/AuthContext";
 import { useWhatsapp } from "@/context/WhatsappContext";
-import { Button, Modal, Progress, QRCode } from "antd";
+import { Button, Modal, Progress} from "antd";
 import {
   CheckCircle2Icon,
   CircleCheck,
@@ -22,10 +22,12 @@ const Home: FC = () => {
     startSession,
     loading,
     TimeoutInterval,
-    allMessages,
-    getAllMessages,
     getTodayMessages,
-    todayMessages,
+    getAllMessagesCount, 
+    getTodayMessagesCount,
+    todayMessagesCount, 
+    allMessagesCount
+    
   } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
@@ -69,6 +71,8 @@ const Home: FC = () => {
       console.log(error);
     }
   };
+
+ 
 
   useEffect(() => {}, [TimeoutInterval]);
 
@@ -351,16 +355,18 @@ const Home: FC = () => {
 
                 <p className="text-gray-500 mt-1">
                   Today Messages:{" "}
-                  {Array.isArray(todayMessages) ? todayMessages.length : 0}
+                  {todayMessagesCount}
                 </p>
                 <p className="text-gray-500 mt-1">
                   Total Messages:{" "}
-                  {Array.isArray(allMessages) ? allMessages.length : 0}
+                  {allMessagesCount}
                 </p>
               </div>
               <Button
                 onClick={() => {
-                  getAllMessages();
+                  // getAllMessages();
+                  getTodayMessagesCount();
+                  getAllMessagesCount();
                   getTodayMessages();
                 }}
                 color="purple"
