@@ -42,7 +42,7 @@ function incrementLimit() {
   localStorage.setItem("ai-limit", JSON.stringify({ date: today, count: newCount }));
 }
 
-export function MarketingGenerator() {
+function MarketingGenerator() {
   const [useTemplate, setUseTemplate] = useState(true);
   const [businessName, setBusinessName] = useState("");
   const [features, setFeatures] = useState("");
