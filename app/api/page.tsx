@@ -25,6 +25,7 @@ import api from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { KeyRound } from "lucide-react";
+import ProtectedRoute from "@/components/Protected";
 
 const { Title, Paragraph, Text } = Typography;
 function Developer() {
@@ -378,4 +379,12 @@ function Developer() {
   );
 }
 
-export default Developer;
+
+
+export default function Page() {
+  return (
+    <ProtectedRoute>
+      <Developer/>
+    </ProtectedRoute>
+  );
+}

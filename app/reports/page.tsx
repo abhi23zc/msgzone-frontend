@@ -6,6 +6,7 @@ import { FilterFilled, MoreOutlined } from "@ant-design/icons";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+import ProtectedRoute from "@/components/Protected";
 
 const columns = [
   {
@@ -195,4 +196,11 @@ function MessageReports() {
   );
 }
 
-export default MessageReports;
+
+export default function Page() {
+  return (
+    <ProtectedRoute>
+      <MessageReports/>
+    </ProtectedRoute>
+  );
+}

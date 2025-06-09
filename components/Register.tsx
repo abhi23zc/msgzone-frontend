@@ -89,7 +89,7 @@ function RegisterPage() {
               rules={[
                 { required: true, message: "Please input your email!" },
                 {
-                  type: "email",
+                  pattern: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
                   message: "Please enter a valid email address!",
                 },
               ]}
@@ -114,6 +114,7 @@ function RegisterPage() {
               className="w-full max-w-xs"
               rules={[
                 { required: true, message: "Please input your password!" },
+                { min: 6, message: "Minimum password length must be 6 characters" }
               ]}
             >
               <Input.Password />

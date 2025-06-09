@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { CopyOutlined, RobotOutlined, SlackOutlined } from "@ant-design/icons";
 import toast from "react-hot-toast";
+import ProtectedRoute from "@/components/Protected";
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -41,7 +42,7 @@ function incrementLimit() {
   localStorage.setItem("ai-limit", JSON.stringify({ date: today, count: newCount }));
 }
 
-export default function MarketingGenerator() {
+export function MarketingGenerator() {
   const [useTemplate, setUseTemplate] = useState(true);
   const [businessName, setBusinessName] = useState("");
   const [features, setFeatures] = useState("");
@@ -179,5 +180,13 @@ export default function MarketingGenerator() {
         </Card>
       </Content>
     </Layout>
+  );
+}
+
+export default function Page() {
+  return (
+    <ProtectedRoute>
+      <MarketingGenerator/>
+    </ProtectedRoute>
   );
 }

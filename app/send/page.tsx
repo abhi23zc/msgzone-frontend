@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 import PhoneUploaderInput from "./UploadContact";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import ProtectedRoute from "@/components/Protected";
 const { TextArea } = Input;
 
 // Dynamically import ReactQuill with SSR disabled
@@ -417,4 +418,11 @@ function Send() {
   );
 }
 
-export default Send;
+
+export default function Page() {
+  return (
+    <ProtectedRoute>
+      <Send/>
+    </ProtectedRoute>
+  );
+}
