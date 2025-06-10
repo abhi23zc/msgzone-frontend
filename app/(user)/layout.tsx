@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
-import "./globals.css";
+import '../globals.css'
 import { AuthProvider } from "@/context/AuthContext";
 import { WhatsappProvider } from "@/context/WhatsappContext";
 import Sidebar from "@/components/Sidebar";
