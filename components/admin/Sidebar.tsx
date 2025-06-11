@@ -10,6 +10,7 @@ import {
   PieChartOutlined,
   LogoutOutlined,
   MessageOutlined,
+  RollbackOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Divider, Layout, Menu, theme } from "antd";
@@ -43,6 +44,7 @@ const items: MenuItem[] = [
   getItem("Plans", "5", <BulbOutlined />),
   // getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),
+  getItem("Back to User Dashboard", "user-dashboard", <RollbackOutlined />),
   getItem("Logout", "8", <LogoutOutlined />),
   getItem("", "9", <ChevronsLeft />),
 ];
@@ -88,7 +90,8 @@ const Sidebar: React.FC = () => {
             <>
               <img src="/assets/logo.png" alt="msgzone logo" className="w-9" />
               <div>
-                <h1 className="text-xl">Msg Zone</h1>
+                <h1 className="text-xl pt-3">Admin Panel</h1>
+                <p className="text-xs text-gray-500">Manage your application</p>
               </div>
             </>
           )}
@@ -107,6 +110,7 @@ const Sidebar: React.FC = () => {
             // if (key === "3") router.push("/admin/reports");
             // if (key === "5") router.push("/admin/plan");
             // if (key === "6") router.push("/api");
+            if (key === "user-dashboard") router.push("/");
             if (key === "8") {
               (async function logout() {
                 await api

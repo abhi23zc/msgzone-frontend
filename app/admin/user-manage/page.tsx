@@ -277,9 +277,14 @@ function UserManagementPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
+                  {/* ❌ This has to be change  */}
+                    {/* <div className="text-sm">
                       Messages: {user.usage.messagesSent}/
                       {user.usage.messagesLimit}
+                    </div> */}
+                    <div className="text-sm">
+                      Messages: {user.usage.messagesSent}/
+                      Unlimited
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
