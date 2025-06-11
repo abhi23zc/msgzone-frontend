@@ -121,7 +121,8 @@ function DashboardPage() {
           updatedCard.value = totalMessages?.toString() || "0";
         }
         if(card?.title === "Revenue Generated") {
-          updatedCard.value = totalRevenue?.toString() || "₹0";
+          updatedCard.value = "0";
+          // updatedCard.value = totalRevenue?.toString() || "₹0";
         }
         
         return updatedCard;
