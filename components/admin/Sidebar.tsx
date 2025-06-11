@@ -9,6 +9,7 @@ import {
   UserOutlined,
   PieChartOutlined,
   LogoutOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Divider, Layout, Menu, theme } from "antd";
@@ -36,11 +37,11 @@ function getItem(
 
 const items: MenuItem[] = [
   getItem("Dashboard", "1", <PieChartOutlined />),
-  getItem("Send Message", "2", <DesktopOutlined />),
-  getItem("Message Report", "3", <UserOutlined />),
-  getItem("Templates", "4", <BookOutlined />),
+  getItem("User Management", "2", <UserOutlined />),
+  getItem("Message Report", "3", <MessageOutlined />),
+  // getItem("Templates", "4", <BookOutlined />),
   getItem("Plans", "5", <BulbOutlined />),
-  getItem("Developer API", "6", <ApiOutlined />),
+  // getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),
   getItem("Logout", "8", <LogoutOutlined />),
   getItem("", "9", <ChevronsLeft />),
@@ -101,10 +102,11 @@ const Sidebar: React.FC = () => {
           mode="inline"
           onClick={({ key }) => {
             if (key === "9") setCollapsed(true);
-            if (key === "1") router.push("/");
-            if (key === "2") router.push("/send");
-            if (key === "3") router.push("/reports");
-            if (key === "6") router.push("/api");
+            if (key === "1") router.push("/admin");
+            if (key === "2") router.push("/admin/user-manage");
+            // if (key === "3") router.push("/admin/reports");
+            // if (key === "5") router.push("/admin/plan");
+            // if (key === "6") router.push("/api");
             if (key === "8") {
               (async function logout() {
                 await api
