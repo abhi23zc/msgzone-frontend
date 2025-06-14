@@ -42,7 +42,7 @@ function LoginPage() {
   
 
   return (
-    <div className="w-full flex justify-center items-center min-h-screen">
+    <div className="w-full flex justify-center items-center min-h-screen p-4">
       <div className="card w-96 bg-white shadow-xl rounded-md">
         <div className="p-6">
           <p className="text-xl font-semibold text-center mb-4">

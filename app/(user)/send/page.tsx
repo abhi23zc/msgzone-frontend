@@ -45,10 +45,10 @@ function Send() {
     error,
     sendScheduleMessage,
     sendScheduleBulk,
-    
   } = useWhatsapp();
   let devices = user?.data?.user?.devices;
   const [attachments, setAttachments] = useState<AttachmentType[]>([]);
+  const [messageContent, setMessageContent] = useState("");
 
   const onSchedule = async (values: any) => {
     try {
@@ -128,9 +128,9 @@ function Send() {
           timer: values.timer || 2,
         });
         if (msg) {
-          
+
           toast.success("Messages sent successfully");
-          
+
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
@@ -202,227 +202,286 @@ function Send() {
   const modules = {
     toolbar: [
       ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }], // lists
+      [{ list: "ordered" }, { list: "bullet" }],
     ],
   };
 
+  // Function to format message content for WhatsApp preview
+  const formatMessageContent = (content: string) => {
+    if (!content) return null;
+
+    // Create a temporary div to parse HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+
+    // Convert HTML to WhatsApp-style formatting
+    let formattedContent = tempDiv.textContent || '';
+
+    // Handle bold text
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '*$1*');
+
+    // Handle italic text
+    formattedContent = formattedContent.replace(/_(.*?)_/g, '_$1_');
+
+    // Handle strikethrough
+    formattedContent = formattedContent.replace(/~~(.*?)~~/g, '~$1~');
+
+    return formattedContent;
+  };
+
   return (
-    <section className="md:my-10 md:mx-10 m-3 w-full">
-      <h1 className="text-3xl font-semibold mb-6">Send Message</h1>
-
-      <div className="w-full bg-white p-6 shadow-md border border-gray-200 rounded-lg">
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item
-            label="From WhatsApp Number"
-            name="fromNumber"
-            rules={[
-              { required: true, message: "Please select WhatsApp number" },
-            ]}
-          >
-            <Select placeholder="Select WhatsApp number" className="w-full">
-              {devices?.map(
-                (device: any, index: number) =>
-                  device.status === "connected" && (
-                    <Select.Option key={index} value={device.deviceId}>
-                      {device.deviceName}
-                    </Select.Option>
-                  )
-              )}
-            </Select>
-          </Form.Item>
-
-          {/* <Form.Item
-            label="Recipient Number"
-            name="recipientNumber"
-            rules={[
-              {
-                required: true,
-                message: "Please enter recipient's WhatsApp number",
-              },
-            ]}
-          >
-            <Input
-              placeholder="Enter recipient's WhatsApp number"
-              className="w-full"
-            />
-          </Form.Item> */}
-
-          <Form.Item
-            label="Recipient Numbers"
-            name="recipientNumber"
-            rules={[
-              {
-                required: true,
-                message:
-                  "Please enter at least one recipient's WhatsApp number",
-              },
-            ]}
-          >
-            {/* <PhoneNumberInput form={form} /> */}
-            <PhoneUploaderInput />
-          </Form.Item>
-
-          {/* <Form.Item
-            label="Message"
-            name="message"
-            rules={[{ required: true, message: "Please enter your message" }]}
-            extra={
-              <div className="flex justify-end">
-                <Button type="link" className="p-0">
-                  Use Template
-                </Button>
-              </div>
-            }
-          >
-            <TextArea
-              rows={4}
-              placeholder="Type your message here..."
-              className="w-full"
-            />
-          </Form.Item> */}
-
-          <Form.Item
-            label="Message"
-            name="message"
-            rules={[{ required: true, message: "Please enter your message" }]}
-          >
-            <ReactQuill theme="snow" modules={modules} className="h-32" />
-          </Form.Item>
-          <div className="flex justify-end animate-pulse">
-            <Link href={"/ai/template"} target="_blank">
-              <Button type="link" className="mt-5">
-                Use AI Generated Template
-              </Button>
-            </Link>
-          </div>
-
-          <Form.Item label="Attachments">
-            <div className="space-y-4">
-              <Upload.Dragger
-                beforeUpload={beforeUpload}
-                multiple={true}
-                showUploadList={false}
+    <section className="md:my-6 md:mx-6 m-3 w-full">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column - Form */}
+        <div className="flex-1 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
+          <h1 className="text-2xl font-semibold mb-6 text-gray-800">Send Message</h1>
+          
+          <Form form={form} layout="vertical" onFinish={onFinish}>
+            <Form.Item
+              label="From WhatsApp Number"
+              name="fromNumber"
+              rules={[{ required: true, message: "Please select WhatsApp number" }]}
+            >
+              <Select 
+                placeholder="Select WhatsApp number" 
                 className="w-full"
+                size="large"
               >
-                <div className="flex flex-col items-center justify-center space-y-4 p-8 ">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-                    <UploadOutlined className="text-2xl text-white" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-lg font-semibold text-gray-800">
-                      Drop files here or click to browse
-                    </p>
-                    <p className="text-sm text-gray-500 max-w-sm">
-                      Support JPG, PNG, PDF, MP3, MP4 files up to 5MB each
-                    </p>
-                  </div>
-                </div>
-              </Upload.Dragger>
+                {devices?.map(
+                  (device: any, index: number) =>
+                    device.status === "connected" && (
+                      <Select.Option key={index} value={device.deviceId}>
+                        {device.deviceName}
+                      </Select.Option>
+                    )
+                )}
+              </Select>
+            </Form.Item>
 
-              {attachments.length > 0 && (
-                <div className="space-y-4 mt-4">
-                  {attachments.map((attachment, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start space-x-4 p-4 border rounded-lg bg-gray-50"
-                    >
-                      <div className="w-24 h-24 flex items-center justify-center bg-white rounded border">
-                        {attachment.previewUrl ? (
-                          <Image
-                            src={attachment.previewUrl}
-                            alt={attachment.file.name}
-                            className="object-cover w-full h-full rounded "
-                            preview={{ mask: "Preview" }}
-                          />
-                        ) : (
-                          <span className="text-4xl">
-                            {getFileIcon(attachment.file)}
-                          </span>
-                        )}
-                      </div>
+            <Form.Item
+              label="Recipient Numbers"
+              name="recipientNumber"
+              rules={[{ required: true, message: "Please enter at least one recipient's WhatsApp number" }]}
+            >
+              <PhoneUploaderInput messageContent={messageContent} />
+            </Form.Item>
 
-                      <div className="flex-grow space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium truncate">
-                            {attachment.file.name}
-                          </span>
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => removeAttachment(index)}
+            <Form.Item
+              label="Message"
+              name="message"
+              rules={[{ required: true, message: "Please enter your message" }]}
+            >
+              <ReactQuill 
+                theme="snow" 
+                modules={modules} 
+                className="h-32" 
+                onChange={(content) => {
+                  setMessageContent(content);
+                  form.setFieldValue('message', content);
+                }}
+              />
+            </Form.Item>
+
+            <div className="flex justify-end mt-10">
+              <Link href={"/ai/template"} target="_blank">
+                <Button type="link" className="text-blue-600 hover:text-blue-700">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Use AI Template
+                  </span>
+                </Button>
+              </Link>
+            </div>
+
+            {/* Attachments Section */}
+            <Form.Item label="Attachments" className="mb-6">
+              <div className="space-y-4">
+                <Upload.Dragger
+                  beforeUpload={beforeUpload}
+                  multiple={true}
+                  showUploadList={false}
+                  className="w-full hover:border-blue-500 transition-colors"
+                >
+                  <div className="p-6">
+                    <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <UploadOutlined className="text-xl text-blue-500" />
+                    </div>
+                    <p className="text-base font-medium text-gray-900 mb-1">Drop files here or click to upload</p>
+                    <p className="text-sm text-gray-500">
+                      Support for JPG, PNG, PDF, MP3, MP4 files up to 5MB
+                    </p>
+                  </div>
+                </Upload.Dragger>
+
+                {attachments.length > 0 && (
+                  <div className="space-y-3">
+                    {attachments.map((attachment, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100"
+                      >
+                        <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center bg-white rounded-lg border">
+                          {attachment.previewUrl ? (
+                            <Image
+                              src={attachment.previewUrl}
+                              alt={attachment.file.name}
+                              className="object-cover w-full h-full rounded-lg"
+                              preview={{ mask: "Preview" }}
+                            />
+                          ) : (
+                            <span className="text-2xl">
+                              {getFileIcon(attachment.file)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-900 truncate">
+                              {attachment.file.name}
+                            </span>
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => removeAttachment(index)}
+                              className="flex-shrink-0"
+                            />
+                          </div>
+                          <Input.TextArea
+                            placeholder="Add a caption (optional)"
+                            value={attachment.caption}
+                            onChange={(e) => handleCaptionChange(index, e.target.value)}
+                            className="w-full"
+                            autoSize={{ minRows: 1, maxRows: 3 }}
                           />
                         </div>
-                        <Input.TextArea
-                          placeholder="Add a caption (optional)"
-                          value={attachment.caption}
-                          onChange={(e) =>
-                            handleCaptionChange(index, e.target.value)
-                          }
-                          className="w-full"
-                          autoSize={{ minRows: 2, maxRows: 4 }}
-                        />
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Form.Item>
+
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button
+                    loading={loading}
+                    type="primary"
+                    htmlType="submit"
+                    icon={<SendOutlined />}
+                    size="large"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Send Message
+                  </Button>
                 </div>
-              )}
-            </div>
-          </Form.Item>
 
-          <div className="mt-8 p-6  shadow-sm flex flex-wrap gap-5" >
-           
-              <div className="flex items-center gap-4">
-                <Button
-                  loading={loading}
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SendOutlined />}
-                 className="h-10"
-                >
-                  Send Message
-                </Button>
-              </div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Form.Item 
+                    name="schedule" 
+                    rules={[]}
+                    className="mb-0"
+                  >
+                    <DatePicker 
+                      showTime 
+                      format="YYYY-MM-DD HH:mm"
+                      className="h-10 min-w-[240px]" 
+                      placeholder="Schedule Message"
+                    />
+                  </Form.Item>
 
-              <div className="flex flex-wrap items-center gap-4">
-                <Form.Item 
-                  name="schedule" 
-                  rules={[]}
-                  className="mb-0"
-                >
-                  <DatePicker 
-                    showTime 
-                    format="YYYY-MM-DDTHH:mm:ssZ"
-                    className="h-10 min-w-[240px] text-base hover:border-blue-500 focus:border-blue-500" 
-                    placeholder="Schedule Message (Optional)"
-                  />
-                </Form.Item>
-
-                <Form.Item 
-                  name="timer" 
-                  rules={[]}
-                  className="mb-0"
-                >
-                  <Input 
-                    prefix={<ClockCircleOutlined className="text-gray-400" />}
-                    placeholder="Sleep Timer (sec)" 
-                    className="h-10 max-w-36 text-base hover:border-blue-500 focus:border-blue-500"
-                  />
-                </Form.Item>
+                  <Form.Item 
+                    name="timer" 
+                    rules={[]}
+                    className="mb-0"
+                  >
+                    <Input 
+                      prefix={<ClockCircleOutlined className="text-gray-400" />}
+                      placeholder="Delay (seconds)" 
+                      className="h-10 w-32"
+                    />
+                  </Form.Item>
+                </div>
               </div>
             </div>
-          {/* </div> */}
-        </Form>
+          </Form>
+        </div>
+
+        {/* Right Column - WhatsApp Preview */}
+        <div className="lg:w-[400px] bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">WhatsApp Preview</h3>
+          <div className="relative w-[280px] h-[560px] mx-auto">
+            {/* Phone Frame */}
+            <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl"></div>
+              
+              {/* Screen */}
+              <div className="absolute inset-4 bg-white rounded-[32px] overflow-hidden">
+                {/* WhatsApp Header */}
+                <div className="h-14 bg-[#075E54] flex items-center px-4">
+                  <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                  <div className="ml-3">
+                    <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                    <div className="h-3 w-16 bg-gray-200 rounded mt-1"></div>
+                  </div>
+                </div>
+
+                {/* Message Preview */}
+                <div className="p-4">
+                  <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%]">
+                    {messageContent ? (
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                        {formatMessageContent(messageContent)}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">
+                        Your message will appear here...
+                      </div>
+                    )}
+                  </div>
+                  {attachments.length > 0 && (
+                    <div className="mt-2">
+                      {attachments.map((attachment, index) => (
+                        <div key={index} className="bg-[#DCF8C6] rounded-lg p-2 max-w-[80%] mt-2">
+                          {attachment.previewUrl ? (
+                            <Image
+                              src={attachment.previewUrl}
+                              alt={attachment.file.name}
+                              className="w-full rounded-lg"
+                              preview={false}
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 p-2 bg-white rounded-lg">
+                              <span className="text-2xl">{getFileIcon(attachment.file)}</span>
+                              <span className="text-sm text-gray-600 truncate">{attachment.file.name}</span>
+                            </div>
+                          )}
+                          {attachment.caption && (
+                            <div className="text-sm text-gray-800 mt-1">{attachment.caption}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-
 export default function Page() {
   return (
     <ProtectedRoute>
-      <Send/>
+      <Send />
     </ProtectedRoute>
   );
 }
