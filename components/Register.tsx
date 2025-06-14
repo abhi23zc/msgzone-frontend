@@ -54,7 +54,7 @@ function RegisterPage() {
   
 
   return (
-    <div className="w-full flex justify-center items-center min-h-screen ">
+    <div className="w-full flex justify-center items-center min-h-screen p-4">
       <div className="card w-96 bg-white shadow-xl rounded-md mt-7 mb-5">
         <div className="p-6 pt-4">
           <p className="text-xl font-semibold text-center ">

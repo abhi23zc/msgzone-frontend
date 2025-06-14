@@ -4,14 +4,19 @@ import CustomModal from "@/components/Modal";
 import ProtectedRoute from "@/components/Protected";
 import { useAuth } from "@/context/AuthContext";
 import { useWhatsapp } from "@/context/WhatsappContext";
-import { Button, Modal, Progress} from "antd";
+import { Button, Modal, Progress } from "antd";
 import {
-  CheckCircle2Icon,
-  CircleCheck,
-  MessageSquareIcon,
+  CheckCircle,
+  MessageSquare,
   Timer,
   User,
-  WatchIcon,
+  Plus,
+  Smartphone,
+  Activity,
+  TrendingUp,
+  Shield,
+  Zap,
+  RefreshCw
 } from "lucide-react";
 import { useEffect, useState, type FC } from "react";
 import toast from "react-hot-toast";
@@ -39,8 +44,8 @@ const Home: FC = () => {
     const instance = modal.success({
       title: "Scan Whatsapp",
       content: (
-        <div className="flex justify-center w-full ">
-          {qrData && <img src={qrData} className="w-full pr-5" />}
+        <div className="flex justify-center w-full">
+          {qrData && <img src={qrData} className="w-full pr-5" alt="WhatsApp QR Code" />}
         </div>
       ),
       maskClosable: false,
@@ -72,8 +77,6 @@ const Home: FC = () => {
     }
   };
 
- 
-
   useEffect(() => {}, [TimeoutInterval]);
 
   const handleRefresh = async () => {
@@ -85,7 +88,10 @@ const Home: FC = () => {
   };
 
   return (
-    <main className="min-h-screen w-full bg-[url('/assets/bg.png')] bg-cover bg-center bg-no-repeat flex ">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 relative overflow-hidden w-full">
+      {/* Subtle background pattern */}
+     
+      
       <CustomModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setisModalOpen}
@@ -93,296 +99,302 @@ const Home: FC = () => {
       />
       {contextHolder}
 
-      {/* Right Component */}
-
-      <section className="w-full p-4 md:p-6 bg-gray-50 overflow-y-auto min-h-screen">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 transform transition-all hover:shadow-lg relative">
-            <div className="border-b pb-4 mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Current Plan</h2>
-              <p className="text-sm text-gray-600">
-                Your current subscription details
-              </p>
+      <div className="relative z-10 w-full max-w-8xl mx-auto p-6 lg:p-8 space-y-8">
+        {/* Premium Header Section */}
+        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-8 border-b border-slate-200/60">
+          <div className="space-y-2">
+            <div className="flex ml-5">
+             
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent">
+                Dashboard
+              </h1>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Plan details */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-green-100 p-3 rounded-full shrink-0">
-                    <CircleCheck className="text-green-600 w-6 h-6" />
+            <p className="text-slate-600 text-lg font-medium ml-5">
+              Welcome back, <span className="text-slate-900 font-semibold">{user?.data?.user?.name || "Professional"}</span>
+            </p>
+            <p className="text-sm text-slate-500 ml-5">
+              Manage your WhatsApp Business communications with enterprise-grade reliability
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-500 group">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <User className="w-6 h-6 text-white" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      Business Pro
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Unlimited messages, 5 WhatsApp numbers, priority support
-                    </p>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                </div>
+                <div className="space-y-1">
+                  <p className="font-semibold text-slate-900 text-sm">
+                    {user?.data?.user?.name || "Professional User"}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {user?.data?.user?.email}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-green-600" />
+                    <span className="text-xs text-green-600 font-medium">Verified</span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-xl">
-                  <div className="bg-blue-100 p-3 rounded-full shrink-0">
-                    <WatchIcon className="text-blue-600 w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">
-                      Valid until
-                    </h4>
-                    <p className="text-blue-700 font-semibold">June 30, 2025</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Message Usage */}
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="bg-purple-100 p-3 rounded-full shrink-0">
-                    <MessageSquareIcon className="text-purple-600 w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                      Monthly Messages
-                    </h3>
-                    <Progress
-                      percent={30}
-                      strokeWidth={10}
-                      strokeColor="#1677ff"
-                      showInfo={true}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="bg-red-100 p-3 rounded-full shrink-0">
-                    <Timer className="text-red-600 w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                      Monthly Usage
-                    </h3>
-                    <Progress
-                      percent={30}
-                      strokeWidth={10}
-                      strokeColor="#1677ff"
-                      showInfo={true}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Plan Features */}
-              <div className="hidden lg:flex flex-col space-y-4 text-sm">
-                {[
-                  "Unlimited templates",
-                  "Bulk messaging",
-                  "Scheduled messages",
-                  "API access",
-                  "Priority support",
-                ].map((feature, index) => (
-                  <div key={index} className="flex gap-3 items-center">
-                    <CheckCircle2Icon className="text-green-600 w-5 h-5 shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="absolute top-2 right-2 md:top-5 md:right-5 flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 md:shadow-md shadow-sm ">
-              <div className="bg-blue-100 p-2 rounded-full">
-                <User className="w-4 h-4 text-blue-600" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900 ">
-                  {user?.data?.user?.name || "Guest"}
-                </span>
-                <span className="text-xs text-gray-500 hidden md:block">
-                  {user?.data?.user?.email}
-                </span>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 max-w-7xl mx-auto">
-          {/* Whatsapp Numbers */}
-          <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-            <div className="p-6 border-b flex justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Devices {user?.data?.user?.devices?.length}
-                </h2>
-                <p className="text-gray-500 mt-1">
-                  Your registered numbers and their status
-                </p>
+        {/* Enhanced Metrics Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-1 text-emerald-600 text-sm font-medium">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Today</span>
+                </div>
               </div>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-bold text-slate-900">
+                  {todayMessagesCount?.toLocaleString() || '0'}
+                </h3>
+                <p className="text-slate-600 font-medium">Messages Sent Today</p>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div className="bg-gradient-to-r from-emerald-500 to-green-600 h-2 rounded-full w-3/4 transition-all duration-1000"></div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-              <div className="flex flex-wrap gap-0">
-                <Button
-                  onClick={handleSubmit}
-                  color="purple"
-                  variant="solid"
-                  size="middle"
-                  loading={loading}
-                >
-                  Add Device
-                </Button>
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
+                  <Zap className="w-4 h-4" />
+                  <span>Total</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-bold text-slate-900">
+                  {allMessagesCount?.toLocaleString() || '0'}
+                </h3>
+                <p className="text-slate-600 font-medium">Total Messages</p>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full w-4/5 transition-all duration-1000"></div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                <Button
-                  onClick={handleRefresh}
-                  color="purple"
-                  variant="solid"
-                  size="middle"
-                  className="ml-2"
-                  loading={authLoading}
-                >
-                  Refresh
-                </Button>
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                  <Smartphone className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-1 text-purple-600 text-sm font-medium">
+                  <Smartphone className="w-4 h-4" />
+                  <span>Devices</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-bold text-slate-900">
+                  {user?.data?.user?.devices?.length || 0}
+                </h3>
+                <p className="text-slate-600 font-medium">Devices</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-green-600 font-medium">All Systems Operational</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-1 text-amber-600 text-sm font-medium">
+                  <Timer className="w-4 h-4" />
+                  <span>Rate</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-bold text-slate-900">98.5%</h3>
+                <p className="text-slate-600 font-medium">Delivery Success</p>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-600 h-2 rounded-full w-full transition-all duration-1000"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+          {/* Device Management - Enhanced */}
+          <div className="xl:col-span-3 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 p-6 border-b border-slate-200/60">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                      <Smartphone className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900">Device Management</h2>
+                  </div>
+                  <p className="text-slate-600 font-medium">Manage and monitor your WhatsApp Business devices</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleRefresh}
+                    size="middle"
+                    loading={authLoading}
+                    className="border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-all duration-300 rounded-xl"
+                    icon={<RefreshCw className="w-4 h-4" />}
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    type="primary"
+                    size="middle"
+                    loading={loading}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-none shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold"
+                    icon={<Plus className="w-4 h-4" />}
+                  >
+                    Add Device
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-2 mb-5 overflow-y-scroll">
+            <div className="p-6">
               {user?.data?.user?.devices?.length > 0 ? (
-                user.data.user.devices.map((device: any, index: number) => {
-                  return (
-                    <div className="bg-white rounded-xl p-4 border hover:shadow-md transition-shadow">
-                      <div className="flex flex-wrap gap-4 justify-between items-center">
+                <div className="space-y-4">
+                  {user.data.user.devices.map((device: any, index: number) => (
+                    <div key={index} className="bg-slate-50/50 backdrop-blur-sm border border-slate-200/60 rounded-xl p-5 hover:shadow-lg hover:bg-white/70 transition-all duration-300 group">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
-                            <img src="/assets/whatsapp.png" alt="whatsapp" />
+                          <div className="relative">
+                            <div className="w-14 h-14 bg-gradient-to-r from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                              <img src="/assets/whatsapp.png" alt="WhatsApp Logo" className="w-8 h-8 " />
+                            </div>
+                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 ${device?.status === "connected" ? "bg-green-500" : "bg-red-500"} rounded-full border-2 border-white flex items-center justify-center`}>
+                              {device?.status === "connected" ? (
+                                <CheckCircle className="w-3 h-3 text-white" />
+                              ) : (
+                                <Timer className="w-3 h-3 text-white" />
+                              )}
+                            </div>
                           </div>
-
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800">
-                              {device?.deviceId}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-gray-400">•</span>
-                              <span className="text-sm text-gray-500">
-                                Last active:{" "}
-                                {new Date(
-                                  device?.lastConnected
-                                ).toLocaleString()}
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-bold text-slate-900">{device?.deviceId}</h3>
+                            <p className="text-sm text-slate-600 font-medium">
+                              Last active: {new Date(device?.lastConnected).toLocaleString()}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${device?.status === "connected" ? "bg-green-500 animate-pulse" : "bg-red-500"}`}></div>
+                              <span className={`text-sm font-semibold ${device?.status === "connected" ? "text-green-700" : "text-red-700"}`}>
+                                {device?.status === "connected" ? "Connected & Active" : "Disconnected"}
                               </span>
                             </div>
                           </div>
                         </div>
-
-                        <div className="flex flex-col items-end space-y-2">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-2.5 h-2.5 rounded-full ${
-                                device?.status != "connected"
-                                  ? "bg-red-500"
-                                  : "bg-green-500"
-                              } `}
-                            ></div>
-                            <span
-                              className={`text-sm ${
-                                device?.status != "connected"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }  font-medium`}
-                            >
-                              {device?.status == "connected"
-                                ? "Active"
-                                : "Inactive"}
-                            </span>
-                          </div>
-
-                          {device?.status == "disconnected" && (
-                            <Button
-                              color="green"
-                              variant="outlined"
-                              size="small"
-                              className="text-sm"
-                              onClick={() => {
-                                setdeviceName(device?.deviceId);
-                                handleSubmit();
-                              }}
-                            >
-                              Connect
-                            </Button>
-                          )}
-                        </div>
+                        
+                        {device?.status === "disconnected" && (
+                          <Button
+                            type="primary"
+                            size="middle"
+                            onClick={() => {
+                              setdeviceName(device?.deviceId);
+                              handleSubmit();
+                            }}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-none shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold"
+                          >
+                            Reconnect
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  );
-                })
+                  ))}
+                </div>
               ) : (
-                <div className="text-center p-10 bg-white ">
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="mx-auto w-40 md:w-48 lg:w-56 mb-4"
+                <div className="text-center py-16 space-y-6">
+                  <div className="relative w-64 h-64 mx-auto mb-8">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-full animate-pulse"></div>
+                    <div className="absolute inset-4 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
+                      <Smartphone className="w-24 h-24 text-slate-400" />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                      No Devices Connected
+                    </h3>
+                    <p className="text-slate-600 font-medium max-w-md mx-auto leading-relaxed">
+                      Connect your first WhatsApp device to unlock enterprise-grade messaging capabilities and start scaling your business communications.
+                    </p>
+                  </div>
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={handleSubmit}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-none shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold px-8 py-3 h-auto"
+                    icon={<Plus className="w-5 h-5" />}
                   >
-                    <source 
-                      src="/assets/no_device.webm" 
-                      type="video/webm"
-                    />
-            
-                    <img
-                      src="/assets/qr-illustration.svg"
-                      alt="Connect Device"
-                      className="mx-auto w-40 mb-4"
-                    />
-                  </video>
-                  <h2 className="text-xl font-semibold">
-                    No Devices Connected
-                  </h2>
-                  <p className="text-gray-600 mt-2">
-                    To start sending messages, connect your WhatsApp device now.
-                  </p>
-                  <button className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-                    Add Device Now
-                  </button>
+                    Connect Your First Device
+                  </Button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Recent Messages */}
-          <div className="bg-white shadow-sm rounded-xl overflow-hidden">
-            <div className="p-6 border-b flex justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Recent Messages
-                </h2>
-                <p className="text-gray-500 mt-1">
-                  Status of your recent messages
-                </p>
-
-                <p className="text-gray-500 mt-1">
-                  Today Messages:{" "}
-                  {todayMessagesCount}
-                </p>
-                <p className="text-gray-500 mt-1">
-                  Total Messages:{" "}
-                  {allMessagesCount}
-                </p>
+          {/* Messages Section - Enhanced */}
+          <div className="xl:col-span-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 p-6 border-b border-slate-200/60">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900">Message Activity</h2>
+                  </div>
+                  <p className="text-slate-600 font-medium">Real-time communication monitoring</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    getTodayMessagesCount();
+                    getAllMessagesCount();
+                    getTodayMessages();
+                  }}
+                  type="primary"
+                  size="middle"
+                  loading={loading}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border-none shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl font-semibold"
+                  icon={<RefreshCw className="w-4 h-4" />}
+                >
+                  Refresh
+                </Button>
               </div>
-              <Button
-                onClick={() => {
-                  // getAllMessages();
-                  getTodayMessagesCount();
-                  getAllMessagesCount();
-                  getTodayMessages();
-                }}
-                color="purple"
-                variant="solid"
-                size="middle"
-                className="ml-2"
-                loading={loading}
-              >
-                Refresh
-              </Button>
             </div>
-
-            <MessageList />
+            <div className="h-96 overflow-hidden">
+              <MessageList />
+            </div>
           </div>
-        </section>
-      </section>
+        </div>
+      </div>
     </main>
   );
 };

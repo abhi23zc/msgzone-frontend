@@ -31,7 +31,7 @@ export default function AdminLineChart({chartData}:{chartData:any}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Message Analytics</CardTitle>
+        <CardTitle>User Analytics</CardTitle>
         <CardDescription>Last 7 days</CardDescription>
       </CardHeader>
       <CardContent>
@@ -72,10 +72,10 @@ export default function AdminLineChart({chartData}:{chartData:any}) {
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
-          Message Activity <TrendingUp className="h-4 w-4" />
+          User Activity <TrendingUp className="h-4 w-4" />
         </div>
         <div className="text-muted-foreground leading-none">
-          Showing total messages for the last 7 days
+          Showing total users for the last 7 days
         </div>
       </CardFooter>
     </Card>

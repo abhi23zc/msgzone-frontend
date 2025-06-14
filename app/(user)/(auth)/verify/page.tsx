@@ -68,7 +68,7 @@ const VerifyPage = () => {
       const res = (await verifyOtp(email, otpValue.join(""))) as any;
 
       if (res?.success) {
-        window.location.href = "/"; 
+        window.location.href = "/";
       } else throw new Error();
     } catch (e) {
       toast.error("OTP validation Failed");
@@ -99,8 +99,8 @@ const VerifyPage = () => {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <MailOutlined className="h-8 w-8 text-blue-600" />
+          <div className="flex justify-center items-center mb-5">
+            <MailOutlined className="text-blue-600 bg-blue-100  p-5 rounded-full" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Verify Your Email
@@ -128,11 +128,10 @@ const VerifyPage = () => {
                   setErrors((prev) => ({ ...prev, email: undefined }));
                 }
               }}
-              className={`rounded-lg transition-all duration-200 ${
-                errors.email
+              className={`rounded-lg transition-all duration-200 ${errors.email
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                   : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              }`}
+                }`}
               prefix={<MailOutlined className="text-gray-400" />}
             />
             {errors.email && (
@@ -167,7 +166,16 @@ const VerifyPage = () => {
                 value={otpValue}
                 inputClassName={`w-12 h-12 text-xl font-semibold rounded-lg text-center transition-all duration-200`}
                 length={6}
+                inputType="numeric"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
+
             </div>
 
             {errors.otp && (

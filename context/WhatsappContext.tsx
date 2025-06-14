@@ -123,6 +123,7 @@ export const WhatsappProvider = ({
       setLoading(true);
       
       const res = await api.post("/wp/start", { deviceId });
+      console.log(res)
 
       if (res.data?.message == "QR generated successfully") {
         await delay(3000);
