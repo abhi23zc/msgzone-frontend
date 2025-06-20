@@ -44,7 +44,6 @@ const items: MenuItem[] = [
   getItem("Plans", "5", <BulbOutlined />),
   // getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),
-  getItem("Back to User Dashboard", "user-dashboard", <RollbackOutlined />),
   getItem("Logout", "8", <LogoutOutlined />),
   getItem("", "9", <ChevronsLeft />),
 ];
@@ -107,10 +106,9 @@ const Sidebar: React.FC = () => {
             if (key === "9") setCollapsed(true);
             if (key === "1") router.push("/admin");
             if (key === "2") router.push("/admin/user-manage");
-            // if (key === "3") router.push("/admin/reports");
+            if (key === "3") router.push("/admin/reports");
             // if (key === "5") router.push("/admin/plan");
             // if (key === "6") router.push("/api");
-            if (key === "user-dashboard") router.push("/");
             if (key === "8") {
               (async function logout() {
                 await api

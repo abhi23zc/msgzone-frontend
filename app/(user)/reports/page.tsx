@@ -1,14 +1,39 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { DatePicker, Select, Input, Button, Table, Tag } from "antd";
-
-import { FilterFilled, MoreOutlined } from "@ant-design/icons";
+import { FilterFilled } from "@ant-design/icons";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import ProtectedRoute from "@/components/Protected";
+import type { TablePaginationConfig } from "antd/es/table";
+
+interface Message {
+  sendFrom: string;
+  sendTo: string;
+  text: string;
+  status: string;
+  sendThrough: string;
+  createdAt: string;
+}
+
+interface DateRange {
+  from?: string;
+  to?: string;
+}
+
+interface Filters {
+  sender: string;
+  status: string;
+  search: string;
+}
 
 const columns = [
+  {
+    title: "S.No",
+    key: "sno",
+    render: (_:any, __:any  , index:number) => (index+1),
+  },
   {
     title: "Sender",
     dataIndex: "sendFrom",
@@ -25,7 +50,6 @@ const columns = [
     key: "message",
     ellipsis: true,
   },
-
   {
     title: "Status",
     dataIndex: "status",
@@ -46,46 +70,126 @@ const columns = [
     ),
   },
   {
+    title: "Mode",
+    dataIndex: "sendThrough",
+    key: "sendThrough",
+  },
+  {
     title: "Time",
     dataIndex: "createdAt",
     key: "time",
-    render: (date: string) => {
-      return new Date(date).toLocaleString();
-    },
+    render: (date: string) => new Date(date).toLocaleString(),
   },
-  //   {
-  //     title: "Actions",
-  //     key: "actions",
-  //     render: () => (
-  //       <Button
-  //         type="text"
-  //         icon={<MoreOutlined />}
-  //         className="text-gray-500 hover:text-gray-700"
-  //       />
-  //     ),
-  //   },
 ];
 
 function MessageReports() {
   const { allMessages, getAllMessages } = useWhatsapp();
+  const { totalMessages = 0, data = [] } = !allMessages
+    ? {
+        totalMessages: 0,
+        data: [],
+      }
+    : Array.isArray(allMessages)
+    ? {
+        totalMessages: allMessages.length,
+        data: allMessages,
+      }
+    : {
+        totalMessages:
+          (allMessages as { totalMessages?: number }).totalMessages || 0,
+        data: (allMessages as { data?: Message[] }).data || [],
+      };
   const { loading: authLoading } = useAuth();
-  const [msgData, setmsgData] = useState<any>([]);
-  const handleRefresh = async () => {
+  const [msgData, setMsgData] = useState<Message[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [dateRange, setDateRange] = useState<DateRange>({});
+  const [filters, setFilters] = useState<Filters>({
+    sender: "all",
+    status: "all",
+    search: "",
+  });
+
+  const fetchMessages = async (
+    page: number,
+    limit: number,
+    dateFilters?: DateRange
+  ) => {
     try {
-      await getAllMessages();
+      await getAllMessages(limit, page, dateFilters);
     } catch (error) {
-      toast.error("Errow while refreshing");
+      toast.error("Error while fetching data");
     }
   };
 
-  useEffect(() => {
-    getAllMessages();
-  }, [])
-  
+  const handleRefresh = () => {
+    fetchMessages(currentPage, pageSize, dateRange);
+  };
+
+  const handleTableChange = (pagination: TablePaginationConfig) => {
+    if (pagination.current && pagination.pageSize) {
+      setCurrentPage(pagination.current);
+      setPageSize(pagination.pageSize);
+      fetchMessages(pagination.current, pagination.pageSize, dateRange);
+    }
+  };
+
+  const handleDateChange = (_: any, dateStrings: [string, string]) => {
+    if (dateStrings[0] || dateStrings[1]) {
+      setDateRange({
+        from: dateStrings[0] ? `${dateStrings[0]}T00:00:00Z` : undefined,
+        to: dateStrings[1] ? `${dateStrings[1]}T23:59:59Z` : undefined,
+      });
+    } else {
+      setDateRange({});
+    }
+  };
+
+  const handleApplyFilters = () => {
+    fetchMessages(1, pageSize, dateRange);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
-    setmsgData(allMessages);
-  }, [allMessages]);
+    fetchMessages(currentPage, pageSize);
+  }, []);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (filters.search) {
+        setCurrentPage(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (data) {
+      let filteredData = [...data];
+
+      if (filters.status !== "all") {
+        filteredData = filteredData.filter(
+          (msg) => msg.status === filters.status
+        );
+      }
+
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        filteredData = filteredData.filter(
+          (msg) =>
+            msg.sendTo?.toLowerCase().includes(searchLower) ||
+            msg.sendFrom?.toLowerCase().includes(searchLower) ||
+            msg.text?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      setMsgData(filteredData);
+    } else {
+      setMsgData([]);
+    }
+  }, [allMessages, filters.status, filters.search]);
+
   return (
     <section className="md:my-10 md:mx-10 m-3 w-full">
       <div className="flex justify-between">
@@ -97,8 +201,7 @@ function MessageReports() {
         </div>
         <Button
           onClick={handleRefresh}
-          color="purple"
-          variant="solid"
+          type="primary"
           size="middle"
           className="ml-2"
           loading={authLoading}
@@ -109,65 +212,52 @@ function MessageReports() {
 
       <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
               Date Range
             </label>
-            <div className="flex gap-2">
-              <DatePicker placeholder="From" className="w-full" />
-              <DatePicker placeholder="To" className="w-full" />
-            </div>
-          </div>
-
-          {/* Sender Number */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Sender Number
-            </label>
-            <Select
-              defaultValue="all"
+            <DatePicker.RangePicker
               className="w-full"
-              options={[
-                { value: "all", label: "All numbers" },
-                { value: "active", label: "Active numbers" },
-                { value: "inactive", label: "Inactive numbers" },
-              ]}
+              onChange={handleDateChange}
+              format="YYYY-MM-DD"
             />
           </div>
 
-          {/* Message Status */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
               Message Status
             </label>
             <Select
-              defaultValue="all"
+              value={filters.status}
+              onChange={(value: string) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
               className="w-full"
               options={[
                 { value: "all", label: "All statuses" },
                 { value: "delivered", label: "Delivered" },
-                { value: "failed", label: "Failed" },
-                { value: "pending", label: "Pending" },
+                { value: "error", label: "Failed" },
               ]}
             />
           </div>
 
-          {/* Search */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Search</label>
             <Input
+              value={filters.search}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
               placeholder="Search by recipient or message"
               className="w-full"
             />
           </div>
         </div>
 
-        {/* Apply Filters Button */}
         <div className="mt-6 flex justify-end">
           <Button
-            color="purple"
-            variant="solid"
+            onClick={handleApplyFilters}
+            type="primary"
             size="middle"
             className="ml-2"
             icon={<FilterFilled />}
@@ -177,30 +267,31 @@ function MessageReports() {
         </div>
       </div>
 
-      {/* Message Reports Table */}
       <div className="mt-8">
-        <Table
+        <Table<Message>
           columns={columns}
           dataSource={msgData}
           className="bg-white rounded-lg shadow-sm"
-          //   pagination={{
-          //     total: 100,
-          //     pageSize: 10,
-          //     showSizeChanger: true,
-          //     showQuickJumper: true,
-          //     showTotal: (total) => `Total ${total} items`,
-          //   }}
+          onChange={handleTableChange}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalMessages || 50,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `Total ${total} items`,
+          }}
+          rowKey={(record) => record.sendFrom + record.createdAt}
         />
       </div>
     </section>
   );
 }
 
-
 export default function Page() {
   return (
     <ProtectedRoute>
-      <MessageReports/>
+      <MessageReports />
     </ProtectedRoute>
   );
 }

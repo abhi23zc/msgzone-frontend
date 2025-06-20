@@ -70,7 +70,7 @@ interface WhatsappContextProps {
     deviceId: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
-  getAllMessages: () => Promise<void>;
+  getAllMessages: (limit:number, page:number, dateFilters:any) => Promise<void>;
   getAllMessagesCount: () => Promise<void>;
   getTodayMessages: () => Promise<void>;
   getTodayMessagesCount: () => Promise<void>;
@@ -376,14 +376,22 @@ export const WhatsappProvider = ({
     }
   };
 
-  const getAllMessages = async () => {
+  const getAllMessages = async (limit:number, page:number, dateFilters:any) => {
+
     try {
       setError("");
       setAllMessages([]);
       setLoading(true);
-      const res = await api.get("/wp/getAllMessages");
-      // console.log(res)
-      const msgArray = res?.data?.data;
+      
+      // Build query parameters
+      let url = `/wp/getAllMessages?limit=${limit}&page=${page}`;
+      
+      // Add date filters if provided
+      if (dateFilters?.from) url += `&from=${dateFilters.from}`;
+      if (dateFilters?.to) url += `&to=${dateFilters.to}`;
+      
+      const res = await api.get(url);
+      const msgArray = res?.data;
       setAllMessages(msgArray || []);
       
     } catch (error) {

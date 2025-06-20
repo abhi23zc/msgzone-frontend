@@ -17,7 +17,7 @@ function ProtectedAdmin({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.log(err);
-      toast.error("You are not an admin");
+      // toast.error("You are not an admin");
       router.push("/");
     }
   };

@@ -42,7 +42,6 @@ const items: MenuItem[] = [
   getItem("Templates", "4", <BookOutlined />),
   getItem("Plans", "5", <BulbOutlined />),
   getItem("Developer API", "6", <ApiOutlined />),
-  getItem("Admin Panel", "10", <UsergroupAddOutlined />),
   getItem("Help", "7", <ToolOutlined />),
   getItem("Logout", "8", <LogoutOutlined />),
   getItem("", "9", <ChevronsLeft />),
@@ -107,7 +106,6 @@ const Sidebar: React.FC = () => {
             if (key === "2") router.push("/send");
             if (key === "3") router.push("/reports");
             if (key === "6") router.push("/api");
-            if (key === "10") router.push("/admin");
             if (key === "8") {
               (async function logout() {
                 await api

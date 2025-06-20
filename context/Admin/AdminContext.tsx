@@ -12,10 +12,14 @@ interface AdminContextType {
   userGrowth: Record<string, any>;
   userGrowthStats: () => Promise<void>;
   allUsers: Record<string, any>;
+  reportStats : Record<string, any>;
+  reports: Record<string, any>;
+  fetchReports: (limit: number, page: number, from:string, to:string) => Promise<void>;
   fetchallUsers: () => Promise<void>;
   createUser: (userData: Record<string, any>) => Promise<void>;
   updateUser: (id: string, userData: Record<string, any>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  fetchMessageStats : () => Promise<void>;
 }
 
 export const AdminContext = createContext<AdminContextType>({
@@ -26,10 +30,15 @@ export const AdminContext = createContext<AdminContextType>({
   userGrowth: {},
   userGrowthStats: async () => {},
   allUsers: {},
+  reportStats : {},
+  reports:{},
+  fetchReports: async () => {},
   fetchallUsers: async () => {},
   createUser: async () => {},
   updateUser: async () => {},
   deleteUser: async () => {},
+  fetchMessageStats : async () =>{}
+
 });
 
 export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
@@ -37,6 +46,9 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
   const [allUsers, setallUsers] = useState<Record<string, any>>({});
   const [weeklyMessageData, setweeklyMessageData] = useState<Record<string, any>>({});
   const [userGrowth, setuserGrowth] = useState<Record<string, any>>({});
+
+  const [reportStats, setreportStats] = useState<Record<string, any>>({});
+  const [reports, setReports] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchDashboardStats();
@@ -147,6 +159,39 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const fetchMessageStats = async () =>{
+    try {
+      const res = await api.get("/admin/reports/stats");
+      if (res?.data?.status) {
+        setreportStats(res.data.data);
+      } else {
+        toast.error("Unable to fetch message stats");
+      }
+    } catch (error) {
+      console.error("Error [Message Stats]:", error);
+      toast.error("Failed to fetch message statistics");
+    }
+  }
+
+  const fetchReports = async (limit = 1, page = 20, from?: string, to?: string) => {
+    try {
+      let url = `/admin/reports/list?limit=${limit}&page=${page}`;
+      if (from && to) {
+        url += `&from=${from}&to=${to}`;
+      }
+      
+      const res = await api.get(url);
+      if (res?.data?.status) {
+        setReports(res.data.data);
+      } else {
+        toast.error("Unable to fetch message stats");
+      }
+    } catch (error) {
+      console.error("Error [Message Stats]:", error);
+      toast.error("Failed to fetch message statistics");
+    }
+  }
+
   return (
     <AdminContext.Provider
       value={{
@@ -160,7 +205,11 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
         userGrowthStats,
         createUser,
         updateUser,
-        deleteUser
+        deleteUser,
+        fetchMessageStats,
+        reportStats,
+        reports,
+        fetchReports,
       }}
     >
       {children}
