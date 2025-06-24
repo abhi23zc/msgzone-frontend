@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
-import '../globals.css'
+import "../globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { WhatsappProvider } from "@/context/WhatsappContext";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -29,16 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jost.variable} ${jost.variable} antialiased`}>
-        <AuthProvider>
-          <WhatsappProvider>
-            <div className="flex ">
-              <Toaster/>
-              <Sidebar />
-              {/* <Analytics/> */}
-              {children}
-            </div>
-          </WhatsappProvider>
-        </AuthProvider>
+        <Toaster/>
+          <AuthProvider>
+            <WhatsappProvider>
+              <div className="flex h-screen overflow-hidden w-screen">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">{children}</main>
+              </div>
+            </WhatsappProvider>
+          </AuthProvider>
+
       </body>
     </html>
   );

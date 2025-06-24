@@ -1,5 +1,5 @@
 "use client";
-
+import {RenderWhatsapp }from './RenderWhatsapp' 
 import {
   Form,
   Input,
@@ -118,7 +118,7 @@ function Send() {
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
-        } else toast.error("Error while sending message");
+        } 
       } else {
         const msg: any = await sendBulkMessage({
           numbers: numbers,
@@ -134,7 +134,7 @@ function Send() {
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
-        } else toast.error("Error while sending message");
+        } 
       }
     }
   };
@@ -206,44 +206,22 @@ function Send() {
     ],
   };
 
-  // Function to format message content for WhatsApp preview
-  const formatMessageContent = (content: string) => {
-    if (!content) return null;
-
-    // Create a temporary div to parse HTML content
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-
-    // Convert HTML to WhatsApp-style formatting
-    let formattedContent = tempDiv.textContent || '';
-
-    // Handle bold text
-    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '*$1*');
-
-    // Handle italic text
-    formattedContent = formattedContent.replace(/_(.*?)_/g, '_$1_');
-
-    // Handle strikethrough
-    formattedContent = formattedContent.replace(/~~(.*?)~~/g, '~$1~');
-
-    return formattedContent;
-  };
 
   return (
-    <section className="md:my-6 md:mx-6 m-3 w-full">
-      <div className="flex flex-col lg:flex-row gap-6">
+    <section className="md:my-6 md:mx-6 m-3 w-full ">
+      <div className="flex flex-col lg:flex-row gap-6 ">
         {/* Left Column - Form */}
         <div className="flex-1 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
           <h1 className="text-2xl font-semibold mb-6 text-gray-800">Send Message</h1>
-          
+
           <Form form={form} layout="vertical" onFinish={onFinish}>
             <Form.Item
               label="From WhatsApp Number"
               name="fromNumber"
               rules={[{ required: true, message: "Please select WhatsApp number" }]}
             >
-              <Select 
-                placeholder="Select WhatsApp number" 
+              <Select
+                placeholder="Select WhatsApp number"
                 className="w-full"
                 size="large"
               >
@@ -271,10 +249,10 @@ function Send() {
               name="message"
               rules={[{ required: true, message: "Please enter your message" }]}
             >
-              <ReactQuill 
-                theme="snow" 
-                modules={modules} 
-                className="h-32" 
+              <ReactQuill
+                theme="snow"
+                modules={modules}
+                className="h-32"
                 onChange={(content) => {
                   setMessageContent(content);
                   form.setFieldValue('message', content);
@@ -381,27 +359,27 @@ function Send() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                  <Form.Item 
-                    name="schedule" 
+                  <Form.Item
+                    name="schedule"
                     rules={[]}
                     className="mb-0"
                   >
-                    <DatePicker 
-                      showTime 
+                    <DatePicker
+                      showTime
                       format="YYYY-MM-DD HH:mm"
-                      className="h-10 min-w-[240px]" 
+                      className="h-10 min-w-[240px]"
                       placeholder="Schedule Message"
                     />
                   </Form.Item>
 
-                  <Form.Item 
-                    name="timer" 
+                  <Form.Item
+                    name="timer"
                     rules={[]}
                     className="mb-0"
                   >
-                    <Input 
+                    <Input
                       prefix={<ClockCircleOutlined className="text-gray-400" />}
-                      placeholder="Delay (seconds)" 
+                      placeholder="Delay (seconds)"
                       className="h-10 w-32"
                     />
                   </Form.Item>
@@ -419,7 +397,7 @@ function Send() {
             <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
               {/* Notch */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl"></div>
-              
+
               {/* Screen */}
               <div className="absolute inset-4 bg-white rounded-[32px] overflow-hidden">
                 {/* WhatsApp Header */}
@@ -432,37 +410,52 @@ function Send() {
                 </div>
 
                 {/* Message Preview */}
-                <div className="p-4">
-                  <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%]">
-                    {messageContent ? (
-                      <div className="text-sm text-gray-800 whitespace-pre-wrap">
-                        {formatMessageContent(messageContent)}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-400 italic">
-                        Your message will appear here...
-                      </div>
-                    )}
+                <div
+                  className="p-4 h-[calc(100%-56px)] overflow-y-auto"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  <style>
+                    {`
+                      .hide-scrollbar::-webkit-scrollbar {
+                        display: none;
+                      }
+                    `}
+                  </style>
+                  <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] max-h-full overflow-y-auto hide-scrollbar"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    
+                    {RenderWhatsapp(messageContent)}  
                   </div>
+
+                  {/* Attachments */}
                   {attachments.length > 0 && (
                     <div className="mt-2">
                       {attachments.map((attachment, index) => (
-                        <div key={index} className="bg-[#DCF8C6] rounded-lg p-2 max-w-[80%] mt-2">
+                        <div
+                          key={index}
+                          className="bg-[#DCF8C6] rounded-lg p-2 max-w-[80%] mt-2"
+                        >
                           {attachment.previewUrl ? (
-                            <Image
+                            <img
                               src={attachment.previewUrl}
                               alt={attachment.file.name}
                               className="w-full rounded-lg"
-                              preview={false}
                             />
                           ) : (
                             <div className="flex items-center gap-2 p-2 bg-white rounded-lg">
-                              <span className="text-2xl">{getFileIcon(attachment.file)}</span>
-                              <span className="text-sm text-gray-600 truncate">{attachment.file.name}</span>
+                              <span className="text-2xl">
+                                {getFileIcon(attachment.file)}
+                              </span>
+                              <span className="text-sm text-gray-600 truncate">
+                                {attachment.file.name}
+                              </span>
                             </div>
                           )}
                           {attachment.caption && (
-                            <div className="text-sm text-gray-800 mt-1">{attachment.caption}</div>
+                            <div className="text-sm text-gray-800 mt-1">
+                              {attachment.caption}
+                            </div>
                           )}
                         </div>
                       ))}

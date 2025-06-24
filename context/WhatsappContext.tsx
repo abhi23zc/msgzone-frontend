@@ -137,7 +137,8 @@ export const WhatsappProvider = ({
       // if(res?.data?.status){
       //     connectSession()
       // }
-    } catch (error) {
+    } catch (error:any) {
+      toast.error(error?.response?.data?.message || "Something went wrong" )
       setError("Error while staring whatsapp session");
       console.log("Error while staring whatsapp session:", error);
       setLoading(false);
@@ -215,11 +216,12 @@ export const WhatsappProvider = ({
       
       setLoading(false);
       return res?.data;
-    } catch (error) {
-      setError("Error while sending message");
+    } catch (error: any) {
+      setError(error?.response?.data?.message || error?.message || "Something went wrong");
       console.log(error);
       setLoading(false);
-      return null;
+      toast.error(error?.response?.data?.message || "Something went wrong" )
+      return null
     }
   };
 
@@ -264,8 +266,9 @@ export const WhatsappProvider = ({
       
       setLoading(false);
       return res?.data;
-    } catch (error) {
-      setError("Error while sending message");
+    } catch (error:any) {
+      toast.error(error?.response?.data?.message || "Something went wrong" )
+      // setError("Error while sending message");
       console.log(error);
       setLoading(false);
       return null;
@@ -316,8 +319,9 @@ export const WhatsappProvider = ({
       
       setLoading(false);
       return res?.data;
-    } catch (error) {
-      setError("Error while sending bulk messages");
+    } catch (error:any) {
+      toast.error(error?.response?.data?.message || "Something went wrong" )
+      // setError("Error while sending bulk messages");
       console.log(error);
       setLoading(false);
       return null;
@@ -368,8 +372,9 @@ export const WhatsappProvider = ({
       
       setLoading(false);
       return res?.data;
-    } catch (error) {
+    } catch (error:any) {
       setError("Error while sending message");
+      toast.error(error?.response?.data?.message || "Something went wrong" )
       console.log(error);
       setLoading(false);
       return null;

@@ -1,6 +1,7 @@
 "use client";
 
 import api from "@/services/api";
+import { AxiosError } from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -12,14 +13,24 @@ interface AdminContextType {
   userGrowth: Record<string, any>;
   userGrowthStats: () => Promise<void>;
   allUsers: Record<string, any>;
-  reportStats : Record<string, any>;
+  reportStats: Record<string, any>;
   reports: Record<string, any>;
-  fetchReports: (limit: number, page: number, from:string, to:string) => Promise<void>;
+  fetchReports: (
+    limit: number,
+    page: number,
+    from: string,
+    to: string
+  ) => Promise<void>;
   fetchallUsers: () => Promise<void>;
   createUser: (userData: Record<string, any>) => Promise<void>;
   updateUser: (id: string, userData: Record<string, any>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
-  fetchMessageStats : () => Promise<void>;
+  fetchMessageStats: () => Promise<void>;
+  createNewPlan: (plan: any) => Promise<void>;
+  getAllPlans: () => Promise<void>;
+  plans: Record<string, any>;
+  editPlan: (planId: string, plan: any) => Promise<void>;
+  deletePlan: (planId: string) => Promise<void>;
 }
 
 export const AdminContext = createContext<AdminContextType>({
@@ -30,23 +41,29 @@ export const AdminContext = createContext<AdminContextType>({
   userGrowth: {},
   userGrowthStats: async () => {},
   allUsers: {},
-  reportStats : {},
-  reports:{},
+  reportStats: {},
+  reports: {},
   fetchReports: async () => {},
   fetchallUsers: async () => {},
   createUser: async () => {},
   updateUser: async () => {},
   deleteUser: async () => {},
-  fetchMessageStats : async () =>{}
-
+  fetchMessageStats: async () => {},
+  createNewPlan: async () => {},
+  getAllPlans: async () => {},
+  plans: {},
+  editPlan: async () => {},
+  deletePlan: async () => {},
 });
 
 export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
   const [usersData, setUsersData] = useState<Record<string, any>>({});
   const [allUsers, setallUsers] = useState<Record<string, any>>({});
-  const [weeklyMessageData, setweeklyMessageData] = useState<Record<string, any>>({});
+  const [weeklyMessageData, setweeklyMessageData] = useState<
+    Record<string, any>
+  >({});
   const [userGrowth, setuserGrowth] = useState<Record<string, any>>({});
-
+  const [plans, setPlans] = useState<Record<string, any>>({});
   const [reportStats, setreportStats] = useState<Record<string, any>>({});
   const [reports, setReports] = useState<Record<string, any>>({});
 
@@ -116,7 +133,7 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { _id, ...userDataWithoutId } = userData;
       const res = await api.post("/admin/users", userDataWithoutId);
-      
+
       if (res?.data?.status) {
         await fetchallUsers();
         toast.success("User created successfully");
@@ -159,7 +176,7 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchMessageStats = async () =>{
+  const fetchMessageStats = async () => {
     try {
       const res = await api.get("/admin/reports/stats");
       if (res?.data?.status) {
@@ -171,15 +188,20 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error [Message Stats]:", error);
       toast.error("Failed to fetch message statistics");
     }
-  }
+  };
 
-  const fetchReports = async (limit = 1, page = 20, from?: string, to?: string) => {
+  const fetchReports = async (
+    limit = 1,
+    page = 20,
+    from?: string,
+    to?: string
+  ) => {
     try {
       let url = `/admin/reports/list?limit=${limit}&page=${page}`;
       if (from && to) {
         url += `&from=${from}&to=${to}`;
       }
-      
+
       const res = await api.get(url);
       if (res?.data?.status) {
         setReports(res.data.data);
@@ -190,7 +212,67 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error [Message Stats]:", error);
       toast.error("Failed to fetch message statistics");
     }
-  }
+  };
+
+  const createNewPlan = async (plan: any) => {
+    try {
+      console.log("Creating");
+      const res = await api.post("/admin/plans", plan);
+      if (res?.data?.success) {
+        toast.success("Plan created Succesfully");
+      }
+      return res.data;
+    } catch (e) {
+      console.log("Error creating plan:", e);
+      const err = e as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to create plan");
+    }
+  };
+
+  const getAllPlans = async () => {
+    try {
+      const res = await api.get("/admin/plans");
+      if (res?.data?.success) {
+        setPlans(res.data.data);
+      } else {
+        toast.error("Unable to fetch plans");
+      }
+      console.log(res?.data.data);
+    } catch (error) {
+      console.error("Error [Plans]:", error);
+      toast.error("Failed to fetch plans");
+    }
+  };
+
+  const editPlan = async (planId: string, plan: any) => {
+    try {
+      const res = await api.put(`/admin/plans/${planId}`, plan);
+      if (res?.data?.success) {
+        getAllPlans();
+        toast.success("Plan updated successfully");
+      } else {
+        toast.error("Unable to update plan");
+      }
+    } catch (error) {
+      console.error("Error [Plans]:", error);
+      toast.error("Failed to update plan");
+    }
+  };
+
+  const deletePlan = async (planId: string) => {
+    try {
+      const res = await api.delete(`/admin/plans/${planId}`);
+      if (res?.data?.success) {
+        getAllPlans();
+        toast.success("Plan deleted successfully");
+      } else {
+        toast.error("Unable to delete plan");
+      }
+    } catch (error) {
+      console.error("Error [Plans]:", error);
+      toast.error("Failed to delete plan");
+    }
+  };
 
   return (
     <AdminContext.Provider
@@ -210,6 +292,11 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
         reportStats,
         reports,
         fetchReports,
+        createNewPlan,
+        getAllPlans,
+        plans,
+        editPlan,
+        deletePlan,
       }}
     >
       {children}
@@ -217,7 +304,7 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAdminContext = ()=> {
+export const useAdminContext = () => {
   const context = useContext(AdminContext);
   if (!context) {
     throw new Error("useAdminContext must be used within an AdminProvider");

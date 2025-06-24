@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Table,
   TableBody,
@@ -20,25 +21,36 @@ import {
   Package,
   CheckCircle2,
 } from "lucide-react";
+import CreatePlanModal from "@/components/admin/CreatePlanModal";
+import EditPlanModal from "@/components/admin/EditPlanModal";
+
+import { useAdminContext } from "@/context/Admin/AdminContext";
 
 interface Plan {
-  id: number;
+  currency: string;
+  _id: string;
   name: string;
-  type: "Monthly" | "Yearly";
-  duration: number;
+  type: string; // "limited" or other types
   messageLimit: number;
+  deviceLimit: number;
+  durationDays: number;
   price: number;
-  features: string[];
-  status: "Active" | "Inactive";
+  createdAt: string;
+  __v: number;
+  status?: "Active" | "Inactive"; // Assuming status might still be needed for filtering/display
 }
 
 type FilterStatus = "all" | "active" | "inactive";
 
 function PlanManagementPage() {
+  const { createNewPlan, getAllPlans, plans: allPlans, editPlan, deletePlan } = useAdminContext();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const cards = [
     {
       title: "Total Plans",
-      value: "5",
+      value: allPlans?.plans?.length?.toString() || "0",
       change: "+2 this month",
       trend: "up",
       icon: Package,
@@ -51,7 +63,7 @@ function PlanManagementPage() {
     },
     {
       title: "Active Plans",
-      value: "4",
+      value: allPlans?.plans?.filter((plan: any) => plan.status?.toLowerCase() === "active").length?.toString() || "0",
       change: "+1 this month",
       trend: "up",
       icon: CheckCircle2,
@@ -77,51 +89,46 @@ function PlanManagementPage() {
     },
   ];
 
-  const [plans, setPlans] = useState<Plan[]>([
-    {
-      id: 1,
-      name: "Basic",
-      type: "Monthly",
-      duration: 1,
-      messageLimit: 1000,
-      price: 29,
-      features: ["1,000 Messages/month", "Basic Support", "1 Team Member", "API Access"],
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Professional",
-      type: "Monthly",
-      duration: 1,
-      messageLimit: 5000,
-      price: 99,
-      features: ["5,000 Messages/month", "Priority Support", "5 Team Members", "API Access", "Analytics"],
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Enterprise",
-      type: "Yearly",
-      duration: 12,
-      messageLimit: 50000,
-      price: 999,
-      features: ["50,000 Messages/month", "24/7 Support", "Unlimited Team Members", "Advanced API", "Custom Analytics"],
-      status: "Active",
-    },
-  ]);
+  const [plans, setPlans] = useState<Plan[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
   const filteredPlans = plans.filter((plan) => {
-    const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = plan.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    // Assuming a 'status' field might be added or derived for filtering
     const matchesStatus =
       statusFilter === "all" ||
-      (statusFilter === "active" && plan.status === "Active") ||
-      (statusFilter === "inactive" && plan.status === "Inactive");
+      (statusFilter === "active" && plan.status?.toLowerCase() === "active") ||
+      (statusFilter === "inactive" && plan.status?.toLowerCase() === "inactive");
 
     return matchesSearch && matchesStatus;
   });
+
+  useEffect(() => {
+    
+    if (allPlans?.plans?.length > 0) {
+      setPlans(allPlans?.plans?.map((plan: any) => ({
+        currency: plan.currency,
+        _id: plan._id,
+        name: plan.name,
+        type: plan.type,
+        messageLimit: plan.messageLimit,
+        deviceLimit: plan.deviceLimit,
+        durationDays: plan.durationDays,
+        createdAt: plan.createdAt,
+        __v: plan.__v,
+        price: plan.price,
+        status: plan.status || "Active", // Assuming a default status if not provided
+      })));
+    }
+  }, [allPlans]);
+
+  useEffect(() => {
+    getAllPlans();
+  }, []);
 
   return (
     <div className="w-full space-y-6 min-h-[85vh] bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
@@ -129,9 +136,33 @@ function PlanManagementPage() {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Plan Management
         </h1>
-        <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
+        <Button
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
           Create New Plan
         </Button>
+        <CreatePlanModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onCreatePlan={async (newPlan) => {
+            await createNewPlan(newPlan);
+            console.log("New Plan Created:", newPlan);
+          }}
+        />
+
+        {selectedPlan && (
+          <EditPlanModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            plan={selectedPlan}
+            onEditPlan={async (planId, updatedPlan) => {
+              await editPlan(planId, updatedPlan);
+              setIsEditModalOpen(false);
+              setSelectedPlan(null);
+            }}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
@@ -204,10 +235,12 @@ function PlanManagementPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Plan Details</TableHead>
-              <TableHead>Type & Duration</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Price</TableHead>
               <TableHead>Limits</TableHead>
-              <TableHead>Pricing</TableHead>
-              <TableHead>Features</TableHead>
+              <TableHead>Devices</TableHead>
+              <TableHead>Duration</TableHead>
+              <TableHead>Created At</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -224,67 +257,83 @@ function PlanManagementPage() {
               </TableRow>
             ) : (
               filteredPlans.map((plan) => (
-                <TableRow key={plan.id} className="hover:bg-gray-50/50">
+                <motion.tr
+                  key={plan._id}
+                  className="hover:bg-gray-50/50"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: filteredPlans.indexOf(plan) * 0.05 }}
+                >
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-medium text-purple-600">{plan.name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-medium">{plan.type}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {plan.duration} {plan.duration === 1 ? "Month" : "Months"}
+                      <div className="font-medium text-purple-600">
+                        {plan?.name}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      {plan.messageLimit.toLocaleString()} messages/month
+                    <div className="space-y-1">
+                      <div className="font-medium">{plan?.type}</div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium text-blue-600">
-                      ${plan.price}/mo
+                      {plan?.currency} {plan?.price}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      {plan.features.slice(0, 2).map((feature, index) => (
-                        <div key={index} className="text-sm flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-green-500" />
-                          {feature}
-                        </div>
-                      ))}
-                      {plan.features.length > 2 && (
-                        <div className="text-sm text-blue-600">
-                          +{plan.features.length - 2} more
-                        </div>
-                      )}
+                    <div className="text-sm">
+                      {plan?.messageLimit?.toLocaleString()} messages
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {plan?.deviceLimit} devices
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {plan?.durationDays} days
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(plan?.createdAt).toLocaleDateString()}
                     </div>
                   </TableCell>
                   <TableCell>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        plan.status === "Active"
+                      className={`px-2 py-1 capitalize rounded-full text-xs font-medium ${
+                        plan?.status?.toLowerCase() === "active"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {plan.status}
+                      {plan?.status}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPlan(plan);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
                         Edit
                       </Button>
-                      <Button variant="destructive" size="sm">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deletePlan(plan._id)}
+                      >
                         Delete
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))
             )}
           </TableBody>

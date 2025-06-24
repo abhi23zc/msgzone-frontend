@@ -107,7 +107,7 @@ const Sidebar: React.FC = () => {
             if (key === "1") router.push("/admin");
             if (key === "2") router.push("/admin/user-manage");
             if (key === "3") router.push("/admin/reports");
-            // if (key === "5") router.push("/admin/plan");
+            if (key === "5") router.push("/admin/plan");
             // if (key === "6") router.push("/api");
             if (key === "8") {
               (async function logout() {
