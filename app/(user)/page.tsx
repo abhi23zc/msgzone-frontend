@@ -39,6 +39,7 @@ const Home: FC = () => {
     getAllMessagesCount();
     getActivePlan();
     getAllPlans();
+    console.log(activePlan)
   }, []);
 
   const countDown = (qrData: string | null) => {

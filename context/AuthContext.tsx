@@ -35,6 +35,8 @@ interface AuthContextType {
   verifyPayment: (payload: any) => Promise<{
     success: boolean;
   }>;
+  getAllUserSubscriptions: () => Promise<void>;
+  allUserSubscriptions :any
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -57,6 +59,8 @@ const AuthContext = createContext<AuthContextType>({
     orderId: "",
   }),
   verifyPayment: async () => ({ success: false }),
+  getAllUserSubscriptions: async () => {},
+  allUserSubscriptions : null
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -64,8 +68,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const [activePlan, setactivePlan] = useState(null);
-  const [allPlans, setallPlans] = useState(null);
+  const [activePlan, setActivePlan] = useState(null);
+  const [allPlans, setAllPlans] = useState(null);
+  const [allUserSubscriptions, setallUserSubscriptions] = useState(null);
+
   useEffect(() => {
     checkUser();
   }, []);
@@ -210,7 +216,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setError(null);
       const res = await api.get("/plan/subscription");
-      setactivePlan(res.data);
+      setActivePlan(res.data);
       console.log(res?.data);
       return res.data;
     } catch (error) {
@@ -228,7 +234,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (res?.data?.success) {
         return res.data?.data;
       }
-      // console.log(res?.data);
+      console.log(res?.data);
       return res.data;
     } catch (error) {
       console.log("Error getting all plans:", error);
@@ -270,6 +276,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
   };
+  const getAllUserSubscriptions = async()=>{
+    try {
+      const res = await api.get("/plan/allsubscription");
+      setallUserSubscriptions(res.data);
+      console.log(res?.data);
+      return res.data;
+    } catch (error) {
+      console.log("Error getting all user subscriptions:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to fetch all user subscriptions");
+      return null;
+    }
+  }
 
   return (
     <AuthContext.Provider
@@ -289,6 +308,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         allPlans,
         createOrder,
         verifyPayment,
+        getAllUserSubscriptions,
+        allUserSubscriptions,
       }}
     >
       {children}
