@@ -4,14 +4,7 @@ import ProtectedRoute from "@/components/Protected";
 import { useAuth } from "@/context/AuthContext";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import { DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Modal,
-  Table,
-  Tooltip,
-  Popconfirm,
-  Avatar,
-} from "antd";
+import { Button, Modal, Table, Tooltip, Popconfirm, Avatar } from "antd";
 import {
   CheckCircle,
   MessageSquare,
@@ -29,20 +22,23 @@ import { useEffect, useState, type FC } from "react";
 import toast from "react-hot-toast";
 
 const Home: FC = () => {
-  const { user, checkUser, getActivePlan, activePlan } = useAuth();
+  const { user, checkUser, getActivePlan, activePlan, getAllPlans, allPlans } = useAuth();
   const {
     startSession,
     TimeoutInterval,
     allMessagesCount,
-    getAllMessagesCount
+    getAllMessagesCount,
+    deleteDevice,
   } = useWhatsapp();
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
   const [deviceName, setdeviceName] = useState("");
+  const [deleteLoading, setdeleteLoading] = useState(false);
 
   useEffect(() => {
     getAllMessagesCount();
-    getActivePlan()
+    getActivePlan();
+    getAllPlans();
   }, []);
 
   const countDown = (qrData: string | null) => {
@@ -52,7 +48,6 @@ const Home: FC = () => {
       content: (
         <div className="flex justify-center w-full">
           {qrData && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={qrData}
               className="w-full max-w-xs pr-5"
@@ -90,15 +85,7 @@ const Home: FC = () => {
     }
   };
 
-  useEffect(() => { }, [TimeoutInterval]);
-
-  const handleRefresh = async () => {
-    try {
-      await checkUser();
-    } catch (error) {
-      toast.error("Error while refreshing");
-    }
-  };
+  useEffect(() => {}, [TimeoutInterval]);
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
 
@@ -146,33 +133,23 @@ const Home: FC = () => {
       ),
     },
     {
-      title: "Webhook URL",
-      dataIndex: "webhook",
-      key: "webhook",
+      title: "Number",
+      dataIndex: "number",
+      key: "number",
       responsive: ["md", "lg", "xl"],
-      render: (text: string) =>
-        text ? (
-          <a
-            href={text}
-            className="text-blue-500 underline break-all"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {text}
-          </a>
-        ) : (
-          <span className="text-slate-400">-</span>
-        ),
+      render: (text: string) =>(
+        <span className="font-normal text-slate-800 break-all">+{text}</span>
+      )
     },
-    {
-      title: "Sent",
-      dataIndex: "sent",
-      key: "sent",
-      responsive: ["sm", "md", "lg", "xl"],
-      render: (num: number) => (
-        <span className="font-semibold text-green-600">{num || 0}</span>
-      ),
-    },
+    // {
+    //   title: "Sent",
+    //   dataIndex: "sent",
+    //   key: "sent",
+    //   responsive: ["sm", "md", "lg", "xl"],
+    //   render: (num: number) => (
+    //     <span className="font-semibold text-green-600">{num || 0}</span>
+    //   ),
+    // },
     {
       title: "Last Active",
       dataIndex: "lastConnected",
@@ -232,11 +209,16 @@ const Home: FC = () => {
               onConfirm={() => handleDeleteDevice(record.deviceId)}
               okText="Yes"
               cancelText="No"
-              okButtonProps={{ danger: true, className: "bg-gradient-to-r from-red-500 to-pink-500 border-none" }}
+              okButtonProps={{
+                danger: true,
+                className:
+                  "bg-gradient-to-r from-red-500 to-pink-500 border-none",
+              }}
             >
               <Button
                 danger
                 type="primary"
+                loading={deleteLoading}
                 icon={<DeleteOutlined className="w-4 h-4" />}
                 className="bg-gradient-to-r from-red-500 to-pink-500 border-none shadow-md hover:from-red-600 hover:to-pink-600 transition-all duration-200 font-semibold flex items-center"
               >
@@ -250,19 +232,23 @@ const Home: FC = () => {
   ];
 
   const deviceData =
-    user?.data?.user?.devices?.map((device: any, idx: number) => ({
+    user?.data?.user?.devices?.map((device: any, idx: any) => ({
       key: idx,
       number: device?.number || "N/A",
       deviceId: device?.deviceId,
-      webhook: device?.webhookUrl || "",
       sent: device?.sent || 0,
       lastConnected: device?.lastConnected,
       status: device?.status,
     })) || [];
 
-  function handleDeleteDevice(deviceId: string) {
-    // TODO: Implement device deletion logic
-    toast.success(`Device ${deviceId} deleted!`);
+  async function handleDeleteDevice(deviceId: string) {
+    try {
+      setdeleteLoading(true);
+      await deleteDevice(deviceId);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Something went wrong");
+    }
+    setdeleteLoading(false);
   }
 
   return (
@@ -284,7 +270,8 @@ const Home: FC = () => {
                 </span>
               </p>
               <p className="text-xs sm:text-sm text-slate-500 truncate">
-                Manage your WhatsApp Business communications with enterprise-grade reliability
+                Manage your WhatsApp Business communications with
+                enterprise-grade reliability
               </p>
             </div>
           </div>
@@ -305,7 +292,9 @@ const Home: FC = () => {
                 </p>
                 <div className="flex items-center gap-1">
                   <Shield className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600 font-medium">Verified</span>
+                  <span className="text-xs text-green-600 font-medium">
+                    Verified
+                  </span>
                 </div>
               </div>
             </div>
@@ -317,7 +306,9 @@ const Home: FC = () => {
           {summaryCards.map((card, idx) => (
             <div
               key={idx}
-              className={`bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden min-w-0 ${card.onClick ? 'cursor-pointer' : ''}`}
+              className={`bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden min-w-0 ${
+                card.onClick ? "cursor-pointer" : ""
+              }`}
               onClick={card.onClick}
             >
               <div
@@ -388,7 +379,9 @@ const Home: FC = () => {
                         No Devices Connected
                       </h3>
                       <p className="text-slate-600 font-medium max-w-xs sm:max-w-md mx-auto leading-relaxed text-sm sm:text-base">
-                        Connect your first WhatsApp device to unlock enterprise-grade messaging capabilities and start scaling your business communications.
+                        Connect your first WhatsApp device to unlock
+                        enterprise-grade messaging capabilities and start
+                        scaling your business communications.
                       </p>
                     </div>
                   </div>
@@ -423,19 +416,30 @@ const Home: FC = () => {
                   <div className="flex items-center gap-2">
                     <Activity className="w-5 h-5 text-blue-600" />
                     <span className="text-slate-700">
-                      Device Limit: <strong>{activePlan?.data?.plan?.deviceLimit === -1 ? 'Unlimited' : activePlan?.data?.plan?.deviceLimit}</strong>
+                      Device Limit:{" "}
+                      <strong>
+                        {activePlan?.data?.plan?.deviceLimit === -1
+                          ? "Unlimited"
+                          : activePlan?.data?.plan?.deviceLimit}
+                      </strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-blue-600" />
                     <span className="text-slate-700">
-                      Message Limit: <strong>{activePlan?.data?.plan?.messageLimit === -1 ? 'Unlimited' : activePlan?.data?.plan?.messageLimit}</strong>
+                      Message Limit:{" "}
+                      <strong>
+                        {activePlan?.data?.plan?.messageLimit === -1
+                          ? "Unlimited"
+                          : activePlan?.data?.plan?.messageLimit}
+                      </strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-blue-600" />
                     <span className="text-slate-700">
-                      Currency: <strong>{activePlan?.data?.plan?.currency}</strong>
+                      Currency:{" "}
+                      <strong>{activePlan?.data?.plan?.currency}</strong>
                     </span>
                   </div>
                 </div>
@@ -443,42 +447,68 @@ const Home: FC = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-green-600" />
                     <span className="text-slate-700">
-                      Start Date: <strong>{new Date(activePlan?.data?.startDate).toLocaleDateString()}</strong>
+                      Start Date:{" "}
+                      <strong>
+                        {new Date(
+                          activePlan?.data?.startDate
+                        ).toLocaleDateString()}
+                      </strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-red-600" />
                     <span className="text-slate-700">
-                      End Date: <strong>{new Date(activePlan?.data?.endDate).toLocaleDateString()}</strong>
+                      End Date:{" "}
+                      <strong>
+                        {new Date(
+                          activePlan?.data?.endDate
+                        ).toLocaleDateString()}
+                      </strong>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-5 h-5 text-blue-600" />
                     <span className="text-slate-700">
-                      Duration: <strong>{activePlan?.data?.plan?.durationDays} days</strong>
+                      Duration:{" "}
+                      <strong>
+                        {activePlan?.data?.plan?.durationDays} days
+                      </strong>
                     </span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-green-800 mb-4">Usage Statistics</h3>
+              <h3 className="text-lg font-semibold text-green-800 mb-4">
+                Usage Statistics
+              </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-700">Messages Used:</span>
-                  <strong className="text-green-700">{activePlan?.data?.usedMessages}</strong>
+                  <strong className="text-green-700">
+                    {activePlan?.data?.usedMessages}
+                  </strong>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-700">Messages Remaining:</span>
                   <strong className="text-blue-700">
-                    {activePlan?.data?.plan?.messageLimit === -1 ? 'Unlimited' : activePlan?.data?.plan?.messageLimit - activePlan?.data?.usedMessages}
+                    {activePlan?.data?.plan?.messageLimit === -1
+                      ? "Unlimited"
+                      : activePlan?.data?.plan?.messageLimit -
+                        activePlan?.data?.usedMessages}
                   </strong>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
                     className="bg-green-600 h-2.5 rounded-full"
                     style={{
-                      width: `${activePlan?.data?.plan?.messageLimit === -1 ? 0 : (activePlan?.data?.usedMessages / activePlan?.data?.plan?.messageLimit) * 100}%`
+                      width: `${
+                        activePlan?.data?.plan?.messageLimit === -1
+                          ? 0
+                          : (activePlan?.data?.usedMessages /
+                              activePlan?.data?.plan?.messageLimit) *
+                            100
+                      }%`,
                     }}
                   ></div>
                 </div>
@@ -487,6 +517,24 @@ const Home: FC = () => {
           </div>
         ) : (
           <p>No active plan details available.</p>
+        )}
+
+        {allPlans && allPlans.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Available Plans</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {allPlans.map((plan: any) => (
+                <div key={plan._id} className="bg-white rounded-lg shadow-md p-6">
+                  <h4 className="text-lg font-semibold mb-2">{plan.name}</h4>
+                  <p>Type: {plan.type}</p>
+                  <p>Message Limit: {plan.messageLimit === -1 ? "Unlimited" : plan.messageLimit}</p>
+                  <p>Device Limit: {plan.deviceLimit}</p>
+                  <p>Duration: {plan.durationDays} days</p>
+                  <p>Price: {plan.price} {plan.currency}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </Modal>
     </main>

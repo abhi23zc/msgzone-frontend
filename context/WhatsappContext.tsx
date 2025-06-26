@@ -80,6 +80,7 @@ interface WhatsappContextProps {
   todayMessages: any[];
   error: string | "";
   TimeoutInterval: any;
+  deleteDevice:(deviceId:string) => Promise<void>
 }
 
 const WhatsappContext = createContext<WhatsappContextProps>({
@@ -99,6 +100,7 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   todayMessages: [],
   error: "",
   TimeoutInterval: null,
+  deleteDevice: async () =>{}
 });
 
 export const WhatsappProvider = ({
@@ -174,6 +176,22 @@ export const WhatsappProvider = ({
         return null;
       }
       toast.error("Error while connecting device");
+      return null;
+    }
+  };
+
+  const deleteDevice = async (deviceId: string) => {
+    try {
+      setError("");
+      const res = await api.post("/wp/delete", { deviceId });
+      if (res?.data?.status) {
+        await checkUser();
+        return res?.data?.data;
+      }
+      console.log(res?.data)
+    } catch (error:any) {
+      setLoading(false);
+      toast.error(error?.response?.data?.message || "Something went wrong");
       return null;
     }
   };
@@ -476,7 +494,8 @@ export const WhatsappProvider = ({
         allMessagesCount,
         todayMessagesCount,
         getAllMessagesCount,
-        getTodayMessagesCount
+        getTodayMessagesCount,
+        deleteDevice
       }}
     >
       {children}

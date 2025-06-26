@@ -27,7 +27,14 @@ interface AuthContextType {
   getAllPlans: () => Promise<void>;
   activePlan: any;
   allPlans: any;
-
+  createOrder: (planId: string) => Promise<{
+    amount: number;
+    currency: string;
+    orderId: string;
+  }>;
+  verifyPayment: (payload: any) => Promise<{
+    success: boolean;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -44,7 +51,12 @@ const AuthContext = createContext<AuthContextType>({
   getAllPlans: async () => {},
   activePlan: null,
   allPlans: null,
-
+  createOrder: async (planId: string) => ({
+    amount: 0,
+    currency: "",
+    orderId: "",
+  }),
+  verifyPayment: async () => ({ success: false }),
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -209,9 +221,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
   };
-  const getAllPlans = async () => {};
+  const getAllPlans = async () => {
+    try {
+      setError(null);
+      const res = await api.get("/admin/plans");
+      if (res?.data?.success) {
+        return res.data?.data;
+      }
+      // console.log(res?.data);
+      return res.data;
+    } catch (error) {
+      console.log("Error getting all plans:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to fetch all plans");
+      setLoading(false);
+      return null;
+    }
+  };
 
+  const createOrder = async (planId: string) => {
+    try {
+      const res = await api.post("/payment/create-order", { planId });
+      if (res?.data?.success) {
+        return res?.data?.data;
+      }
+      return null;
+    } catch (error) {
+      console.log("Error creating order:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to create order");
+      setLoading(false);
+      return null;
+    }
+  };
 
+  const verifyPayment = async (payload: any) => {
+    try {
+      const res = await api.post("/payment/verify-payment", payload);
+      if (res?.data?.success) {
+        return res.data;
+      }
+      return null;
+    } catch (error) {
+      console.log("Error verifying payment:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to verify payment");
+      setLoading(false);
+      return null;
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -228,7 +286,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         getAllPlans,
         getActivePlan,
         activePlan,
-        allPlans
+        allPlans,
+        createOrder,
+        verifyPayment,
       }}
     >
       {children}

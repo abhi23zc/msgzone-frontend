@@ -283,7 +283,7 @@ function PlanManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {plan?.messageLimit?.toLocaleString()} messages
+                      {plan?.messageLimit?.toLocaleString() ? plan?.messageLimit?.toLocaleString() + " messages" : "Unlimited messages"}
                     </div>
                   </TableCell>
                   <TableCell>
