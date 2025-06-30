@@ -208,7 +208,7 @@ function Send() {
 
 
   return (
-    <section className="md:my-6 md:mx-6 m-3 w-full ">
+    <section className="p-10 m-3 w-full ">
       <div className="flex flex-col lg:flex-row gap-6 ">
         {/* Left Column - Form */}
         <div className="flex-1 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">

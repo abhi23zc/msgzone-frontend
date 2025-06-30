@@ -89,23 +89,12 @@ function Report() {
     },
   ];
 
-  const filteredMessages = reports?.results?.filter((message: Message) => {
-    const matchesSearch =
-      message.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      message.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      message.user.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = 
-      filters.status === "all" || 
-      message.status.toLowerCase() === filters.status;
-
-    return matchesSearch && matchesStatus;
-  });
+const filteredMessages = reports?.results || [];
 
   useEffect(() => {
     fetchMessageStats();
-    fetchReports(pageSize, currentPage, dateRange.from, dateRange.to);
-  }, [currentPage, pageSize, dateRange.from, dateRange.to]);
+    fetchReports(pageSize, currentPage, dateRange.from, dateRange.to, filters);
+  }, [currentPage, pageSize, dateRange.from, dateRange.to, filters]);
 
   const totalPages = reports?.pagination?.totalPages || 1;
 
@@ -114,7 +103,7 @@ function Report() {
       ...prev,
       [type]: value,
     }));
-    setCurrentPage(1); // Reset to first page when date changes
+    setCurrentPage(1); 
   };
 
   return (
@@ -199,7 +188,7 @@ function Report() {
                 options={[
                   { value: "all", label: "All statuses" },
                   { value: "delivered", label: "Delivered" },
-                  { value: "failed", label: "Failed" },
+                  { value: "error", label: "Failed" },
                 
                 ]}
                 placeholder="Select Status"

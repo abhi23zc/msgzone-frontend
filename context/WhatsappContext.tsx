@@ -70,7 +70,7 @@ interface WhatsappContextProps {
     deviceId: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
-  getAllMessages: (limit:number, page:number, dateFilters:any) => Promise<void>;
+  getAllMessages: (limit:number, page:number, dateFilters:any, filters:any) => Promise<void>;
   getAllMessagesCount: () => Promise<void>;
   getTodayMessages: () => Promise<void>;
   getTodayMessagesCount: () => Promise<void>;
@@ -399,31 +399,59 @@ export const WhatsappProvider = ({
     }
   };
 
-  const getAllMessages = async (limit:number, page:number, dateFilters:any) => {
+  // const getAllMessages = async (limit:number, page:number, dateFilters:any) => {
 
-    try {
-      setError("");
-      setAllMessages([]);
-      setLoading(true);
+  //   try {
+  //     setError("");
+  //     setAllMessages([]);
+  //     setLoading(true);
       
-      // Build query parameters
-      let url = `/wp/getAllMessages?limit=${limit}&page=${page}`;
+  //     // Build query parameters
+  //     let url = `/wp/getAllMessages?limit=${limit}&page=${page}`;
       
-      // Add date filters if provided
-      if (dateFilters?.from) url += `&from=${dateFilters.from}`;
-      if (dateFilters?.to) url += `&to=${dateFilters.to}`;
+  //     // Add date filters if provided
+  //     if (dateFilters?.from) url += `&from=${dateFilters.from}`;
+  //     if (dateFilters?.to) url += `&to=${dateFilters.to}`;
       
-      const res = await api.get(url);
-      const msgArray = res?.data;
-      setAllMessages(msgArray || []);
+  //     const res = await api.get(url);
+  //     const msgArray = res?.data;
+  //     setAllMessages(msgArray || []);
       
-    } catch (error) {
-      setError("Error while fetching messages");
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //   } catch (error) {
+  //     setError("Error while fetching messages");
+  //     console.log(error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+const getAllMessages = async (
+  limit: number,
+  page: number,
+  dateFilters?: any,
+  filters?: any
+) => {
+  try {
+    setError("");
+    setAllMessages([]);
+    setLoading(true);
+
+    let url = `/wp/getAllMessages?limit=${limit}&page=${page}`;
+
+    if (dateFilters?.from) url += `&from=${dateFilters.from}`;
+    if (dateFilters?.to) url += `&to=${dateFilters.to}`;
+    if (filters?.status && filters.status !== "all") url += `&status=${filters.status}`;
+    if (filters?.search) url += `&search=${filters.search}`;
+
+    const res = await api.get(url);
+    const msgArray = res?.data;
+    setAllMessages(msgArray || []);
+  } catch (error) {
+    setError("Error while fetching messages");
+    console.log(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   
   const getAllMessagesCount = async () => {

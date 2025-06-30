@@ -18,16 +18,48 @@ import {
   TrendingUp,
   Star,
   Gift,
+  Play,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+
+  interface Plan {
+    _id: string;
+    name: string;
+    price: number;
+    currency: string;
+    durationDays: number;
+    messageLimit: number;
+    deviceLimit: number;
+    type: string;
+    popular: boolean;
+  }
+
+  interface Subscription {
+    _id: string;
+    plan: Plan;
+    startDate: string;
+    endDate: string;
+    usedMessages: number;
+    deviceIds: string[];
+    status: "active" | "inactive" | "expired";
+  }
 
 const PricingPlans = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [hoveredPlan, setHoveredPlan] = useState(null);
   const [activeTab, setActiveTab] = useState("current");
-  const { getAllUserSubscriptions, allUserSubscriptions, getAllPlans, createOrder, verifyPayment } =
-    useAuth();
+  const {
+    getAllUserSubscriptions,
+    allUserSubscriptions,
+    getAllPlans,
+    createOrder,
+    verifyPayment,
+    getUserPayments,
+    userPayments,
+    switchPlan,
+  } = useAuth();
 
   const loadRazorpayScript = async () =>
     new Promise((resolve) => {
@@ -38,14 +70,13 @@ const PricingPlans = () => {
       document.body.appendChild(script);
     });
 
-
   const [currentSubscriptions, setCurrentSubscriptions] = useState([]);
 
   const [paymentHistory, setPaymentHistory] = useState([
     {
       _id: "pay_1",
-      razorpay_order_id: "order_MK8j9L5Q2nP3oR",
-      razorpay_payment_id: "pay_MK8j9L5Q2nP3oR",
+      orderId: "order_MK8j9L5Q2nP3oR",
+      paymentId: "pay_MK8j9L5Q2nP3oR",
       razorpay_signature: "signature_123",
       plan: {
         _id: "plan_1",
@@ -57,8 +88,8 @@ const PricingPlans = () => {
     },
     {
       _id: "pay_2",
-      razorpay_order_id: "order_NK7h8K4P1mO2nQ",
-      razorpay_payment_id: "pay_NK7h8K4P1mO2nQ",
+      orderId: "order_NK7h8K4P1mO2nQ",
+      paymentId: "pay_NK7h8K4P1mO2nQ",
       razorpay_signature: "signature_456",
       plan: {
         _id: "plan_2",
@@ -70,8 +101,8 @@ const PricingPlans = () => {
     },
     {
       _id: "pay_3",
-      razorpay_order_id: "order_PL9i0M6R3pQ4sT",
-      razorpay_payment_id: "pay_PL9i0M6R3pQ4sT",
+      orderId: "order_PL9i0M6R3pQ4sT",
+      paymentId: "pay_PL9i0M6R3pQ4sT",
       razorpay_signature: "signature_789",
       plan: {
         _id: "plan_3",
@@ -152,19 +183,19 @@ const PricingPlans = () => {
       day: "numeric",
     });
   };
-const getDaysRemaining = (endDate: string): number => {
-  const end = new Date(endDate);
-  const now = new Date();
+  const getDaysRemaining = (endDate: string): number => {
+    const end = new Date(endDate);
+    const now = new Date();
 
-  if (isNaN(end.getTime())) {
-    return 0;
-  }
+    if (isNaN(end.getTime())) {
+      return 0;
+    }
 
-  const diffTime = end.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return Math.max(0, diffDays); 
-};
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
+  };
 
   const getUsagePercentage = (used: any, limit: any) => {
     if (!limit) return 0; // unlimited
@@ -181,12 +212,12 @@ const getDaysRemaining = (endDate: string): number => {
 
     try {
       const orderData = await createOrder(planId);
-    
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!, 
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Msgzone", 
+        name: "Msgzone",
         description: "Plan Purchase",
         order_id: orderData.orderId,
         handler: async function (response: any) {
@@ -200,7 +231,7 @@ const getDaysRemaining = (endDate: string): number => {
           if (verifyRes?.success) {
             toast.success("Payment Successful!");
           } else {
-            toast.error("Payment verified failed");
+            toast.error("Payment verification failed");
           }
 
           setSelectedPlan(null);
@@ -224,7 +255,6 @@ const getDaysRemaining = (endDate: string): number => {
     }
   };
 
-
   // const handlePayment = async (planId: string) => {
   //   setSelectedPlan(planId);
   //   // Payment logic here
@@ -236,7 +266,7 @@ const getDaysRemaining = (endDate: string): number => {
   useEffect(() => {
     getAllPlans().then((data: any) => {
       if (data?.plans) {
-        const enhancedPlans = data.plans.map((plan:any) => ({
+        const enhancedPlans = data.plans.map((plan: any) => ({
           ...plan,
           description: getDescription(plan.name),
           icon: getIconForPlan(plan.name),
@@ -260,8 +290,19 @@ const getDaysRemaining = (endDate: string): number => {
       "Pro 1 months": "Great for growing teams",
       Basic: "Perfect for small businesses",
     };
-    return descriptions[name as keyof typeof descriptions] || "Flexible messaging plan";
+    return (
+      descriptions[name as keyof typeof descriptions] ||
+      "Flexible messaging plan"
+    );
   };
+
+  const fetchPayments = async () => {
+    await getUserPayments();
+    setPaymentHistory(userPayments?.payments);
+    console.log(userPayments);
+  };
+
+  useEffect(() => {}, [userPayments]);
 
   const SubscriptionCard = ({ subscription }: { subscription: any }) => {
     if (!subscription) return null;
@@ -284,20 +325,24 @@ const getDaysRemaining = (endDate: string): number => {
         <div className="absolute top-4 right-4">
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-              subscription.isActive
+              subscription.status === "active"
                 ? "bg-green-100 text-green-800"
+                : subscription.status === "expired"
+                ? "bg-red-100 text-red-800"
                 : "bg-yellow-100 text-yellow-800"
             }`}
           >
-            {subscription.isActive ? (
+            {subscription.status === "active" ? (
               <>
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Active
+                <CheckCircle className="w-3 h-3 mr-1" /> Active
+              </>
+            ) : subscription.status === "expired" ? (
+              <>
+                <XCircle className="w-3 h-3 mr-1" /> Expired
               </>
             ) : (
               <>
-                <Clock className="w-3 h-3 mr-1" />
-                Queued
+                <Clock className="w-3 h-3 mr-1" /> Inactive
               </>
             )}
           </span>
@@ -312,14 +357,27 @@ const getDaysRemaining = (endDate: string): number => {
           >
             <IconComponent className="w-7 h-7 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-2xl font-bold text-gray-800">
               {subscription.plan.name}
             </h3>
             <p className="text-gray-600 text-sm">
-              {formatPrice(subscription.plan.price)} Plan
+              {formatPrice(subscription?.plan?.price)} Plan
             </p>
           </div>
+
+          {/* Activate Button - Only show for queued plans */}
+          {subscription.status === "inactive" && (
+            <button
+              onClick={async () => {
+                await switchPlan(subscription?.id);
+              }}
+              className="mt-5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
+            >
+              <Play className="w-4 h-4" />
+              Activate
+            </button>
+          )}
         </div>
 
         {/* Plan Details */}
@@ -397,7 +455,6 @@ const getDaysRemaining = (endDate: string): number => {
       </div>
     );
   };
-
   const PaymentHistoryCard = ({ payment }: { payment: any }) => {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
@@ -430,13 +487,13 @@ const getDaysRemaining = (endDate: string): number => {
           <div>
             <span className="text-gray-500">Order ID:</span>
             <p className="font-mono text-gray-800 truncate">
-              {payment.razorpay_order_id}
+              {payment.orderId}
             </p>
           </div>
           <div>
             <span className="text-gray-500">Payment ID:</span>
             <p className="font-mono text-gray-800 truncate">
-              {payment.razorpay_payment_id}
+              {payment.paymentId}
             </p>
           </div>
         </div>
@@ -478,7 +535,10 @@ const getDaysRemaining = (endDate: string): number => {
                   Current Subscriptions
                 </button>
                 <button
-                  onClick={() => setActiveTab("history")}
+                  onClick={() => {
+                    fetchPayments();
+                    setActiveTab("history");
+                  }}
                   className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
                     activeTab === "history"
                       ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
@@ -516,7 +576,7 @@ const getDaysRemaining = (endDate: string): number => {
 
             {currentSubscriptions?.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {currentSubscriptions.map((subscription:any) => (
+                {currentSubscriptions.map((subscription: any) => (
                   <SubscriptionCard
                     key={subscription._id}
                     subscription={subscription}
@@ -556,7 +616,7 @@ const getDaysRemaining = (endDate: string): number => {
               </p>
             </div>
 
-            {paymentHistory.length > 0 ? (
+            {paymentHistory?.length > 0 ? (
               <div className="space-y-4 max-w-4xl mx-auto">
                 {paymentHistory.map((payment) => (
                   <PaymentHistoryCard key={payment._id} payment={payment} />
@@ -596,7 +656,7 @@ const getDaysRemaining = (endDate: string): number => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {plans.map((plan:any) => {
+              {plans.map((plan: any) => {
                 const IconComponent = plan.icon;
                 return (
                   <div
@@ -701,7 +761,7 @@ const getDaysRemaining = (endDate: string): number => {
                         Features Included:
                       </h4>
                       <div className="space-y-3">
-                        {plan.features?.map((feature:any, index:number) => (
+                        {plan.features?.map((feature: any, index: number) => (
                           <div key={index} className="flex items-center">
                             <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                               <CheckCircle className="w-3 h-3 text-green-600" />

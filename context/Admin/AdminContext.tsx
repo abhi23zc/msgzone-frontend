@@ -19,7 +19,8 @@ interface AdminContextType {
     limit: number,
     page: number,
     from: string,
-    to: string
+    to: string,
+    filter:any
   ) => Promise<void>;
   fetchallUsers: () => Promise<void>;
   createUser: (userData: Record<string, any>) => Promise<void>;
@@ -190,17 +191,45 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // const fetchReports = async (
+  //   limit = 1,
+  //   page = 20,
+  //   from?: string,
+  //   to?: string
+  // ) => {
+  //   try {
+  //     let url = `/admin/reports/list?limit=${limit}&page=${page}`;
+  //     if (from && to) {
+  //       url += `&from=${from}&to=${to}`;
+  //     }
+
+  //     const res = await api.get(url);
+  //     if (res?.data?.status) {
+  //       setReports(res.data.data);
+  //     } else {
+  //       toast.error("Unable to fetch message stats");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error [Message Stats]:", error);
+  //     toast.error("Failed to fetch message statistics");
+  //   }
+  // };
+
   const fetchReports = async (
-    limit = 1,
-    page = 20,
+    limit: number,
+    page: number,
     from?: string,
-    to?: string
+    to?: string,
+    filters?: { search?: string; status?: string }
   ) => {
     try {
-      let url = `/admin/reports/list?limit=${limit}&page=${page}`;
-      if (from && to) {
-        url += `&from=${from}&to=${to}`;
-      }
+
+      let url = `/admin/reports/list?page=${page}&limit=${limit}`;
+      if (from) url += `&from=${from}`;
+      if (to) url += `&to=${to}`;
+      if (filters?.status && filters.status !== "all")
+        url += `&status=${filters.status}`;
+      if (filters?.search) url += `&search=${filters.search}`;
 
       const res = await api.get(url);
       if (res?.data?.status) {
@@ -209,11 +238,10 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
         toast.error("Unable to fetch message stats");
       }
     } catch (error) {
-      console.error("Error [Message Stats]:", error);
-      toast.error("Failed to fetch message statistics");
+      console.error("Error [Fetch Reports]:", error);
+      toast.error("Failed to fetch message reports");
     }
   };
-
   const createNewPlan = async (plan: any) => {
     try {
       console.log("Creating");

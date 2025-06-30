@@ -110,21 +110,18 @@ function MessageReports() {
     search: "",
   });
 
-  const fetchMessages = async (
-    page: number,
-    limit: number,
-    dateFilters?: DateRange
-  ) => {
-    try {
-      await getAllMessages(limit, page, dateFilters);
-    } catch (error) {
-      toast.error("Error while fetching data");
-    }
-  };
+const fetchMessages = async (
+  page: number,
+  limit: number,
+  dateFilters?: DateRange
+) => {
+  try {
+    await getAllMessages(limit, page, dateFilters, filters); // ✅ now filters are used
+  } catch (error) {
+    toast.error("Error while fetching data");
+  }
+};
 
-  const handleRefresh = () => {
-    fetchMessages(currentPage, pageSize, dateRange);
-  };
 
   const handleTableChange = (pagination: TablePaginationConfig) => {
     if (pagination.current && pagination.pageSize) {
@@ -188,10 +185,10 @@ function MessageReports() {
     } else {
       setMsgData([]);
     }
-  }, [allMessages, filters.status, filters.search]);
+  }, [allMessages]);
 
   return (
-    <section className="md:my-10 md:mx-10 m-3 w-full">
+    <section className="p-10 w-full">
       <div className="flex justify-between">
         <div>
           <h1 className="text-3xl font-semibold mb-6">Filter Reports</h1>
@@ -199,15 +196,7 @@ function MessageReports() {
             Filter your message reports by date, status, and more
           </p>
         </div>
-        <Button
-          onClick={handleRefresh}
-          type="primary"
-          size="middle"
-          className="ml-2"
-          loading={authLoading}
-        >
-          Refresh
-        </Button>
+      
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">

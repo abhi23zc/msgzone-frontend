@@ -36,7 +36,10 @@ interface AuthContextType {
     success: boolean;
   }>;
   getAllUserSubscriptions: () => Promise<void>;
-  allUserSubscriptions :any
+  allUserSubscriptions: any;
+  getUserPayments: () => Promise<void>;
+  userPayments: any;
+  switchPlan: (planId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -60,7 +63,10 @@ const AuthContext = createContext<AuthContextType>({
   }),
   verifyPayment: async () => ({ success: false }),
   getAllUserSubscriptions: async () => {},
-  allUserSubscriptions : null
+  allUserSubscriptions: null,
+  getUserPayments: async () => {},
+  userPayments: null,
+  switchPlan: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -71,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [activePlan, setActivePlan] = useState(null);
   const [allPlans, setAllPlans] = useState(null);
   const [allUserSubscriptions, setallUserSubscriptions] = useState(null);
+  const [userPayments, setUserPayments] = useState(null);
 
   useEffect(() => {
     checkUser();
@@ -245,10 +252,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const getUserPayments = async () => {
+    try {
+      const res = await api.get("/payment/user-payments");
+      if (res?.data?.success) {
+        setUserPayments(res?.data?.data);
+        return res?.data?.data;
+      }
+      console.log(res?.data);
+      return res.data;
+    } catch (error) {
+      console.log("Error getting user payments:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(
+        err.response?.data?.message || "Failed to fetch user payments"
+      );
+      setLoading(false);
+      return null;
+    }
+  };
+
   const createOrder = async (planId: string) => {
     try {
       const res = await api.post("/payment/create-order", { planId });
       if (res?.data?.success) {
+        console.log(res?.data.data)
         return res?.data?.data;
       }
       return null;
@@ -276,7 +304,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     }
   };
-  const getAllUserSubscriptions = async()=>{
+  const getAllUserSubscriptions = async () => {
     try {
       const res = await api.get("/plan/allsubscription");
       setallUserSubscriptions(res.data);
@@ -285,10 +313,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.log("Error getting all user subscriptions:", error);
       const err = error as AxiosError<{ message: string }>;
-      toast.error(err.response?.data?.message || "Failed to fetch all user subscriptions");
+      toast.error(
+        err.response?.data?.message || "Failed to fetch all user subscriptions"
+      );
       return null;
     }
-  }
+  };
+
+  const switchPlan = async (subscriptionId: string) => {
+    try {
+      const res = await api.post("/plan/switch-plan", { subscriptionId });
+      if (res?.data?.success) {
+        toast.success("Subscription activated successfully")
+        // setActivePlan(res.data);
+        await getAllUserSubscriptions();
+        return res.data;
+      }
+      return null;
+    } catch (error) {
+      console.log("Error switching subscription:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to switch subscription");
+      return null;
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -310,6 +358,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         verifyPayment,
         getAllUserSubscriptions,
         allUserSubscriptions,
+        getUserPayments,
+        userPayments,
+        switchPlan,
       }}
     >
       {children}
