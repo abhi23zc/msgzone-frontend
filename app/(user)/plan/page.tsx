@@ -20,36 +20,66 @@ import {
   Gift,
   Play,
   XCircle,
+  Upload,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import api from "@/services/api";
 
-  interface Plan {
-    _id: string;
-    name: string;
-    price: number;
-    currency: string;
-    durationDays: number;
-    messageLimit: number;
-    deviceLimit: number;
-    type: string;
-    popular: boolean;
-  }
+interface Plan {
+  _id: string;
+  name: string;
+  price: number;
+  currency: string;
+  durationDays: number;
+  messageLimit: number;
+  deviceLimit: number;
+  type: string;
+  popular: boolean;
+}
 
-  interface Subscription {
-    _id: string;
-    plan: Plan;
-    startDate: string;
-    endDate: string;
-    usedMessages: number;
-    deviceIds: string[];
-    status: "active" | "inactive" | "expired";
-  }
+interface Subscription {
+  id: string;
+  plan: Plan;
+  startDate: string;
+  endDate: string;
+  usedMessages: number;
+  deviceIds: string[];
+  status: "active" | "inactive" | "expired";
+}
+
+interface Payment {
+  _id: string;
+  paymentMode: "razorpay" | "manual";
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
+  razorpay_signature?: string;
+  utrNumber?: string;
+  screenshotUrl?: string;
+  status: "pending" | "approved" | "rejected";
+  user: string;
+  plan: Plan;
+  date: string;
+}
 
 const PricingPlans = () => {
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [hoveredPlan, setHoveredPlan] = useState(null);
-  const [activeTab, setActiveTab] = useState("current");
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"current" | "history" | "plans">(
+    "current"
+  );
   const {
     getAllUserSubscriptions,
     allUserSubscriptions,
@@ -59,67 +89,47 @@ const PricingPlans = () => {
     getUserPayments,
     userPayments,
     switchPlan,
+    // createManualPayment,
   } = useAuth();
 
-  const loadRazorpayScript = async () =>
-    new Promise((resolve) => {
+  // Manual payment state
+  const [manualPaymentModalOpen, setManualPaymentModalOpen] = useState(false);
+  const [selectedPlanForManual, setSelectedPlanForManual] =
+    useState<Plan | null>(null);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [utrNumber, setUtrNumber] = useState("");
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+
+  // Data state
+  const [currentSubscriptions, setCurrentSubscriptions] = useState<
+    Subscription[]
+  >([]);
+  const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
+  const [plans, setPlans] = useState<
+    (Plan & {
+      description: string;
+      icon: React.ComponentType<{ className?: string }>;
+      color: string;
+      features: string[];
+    })[]
+  >([]);
+
+  const loadRazorpayScript = async () => {
+    return new Promise((resolve) => {
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
-
-  const [currentSubscriptions, setCurrentSubscriptions] = useState([]);
-
-  const [paymentHistory, setPaymentHistory] = useState([
-    {
-      _id: "pay_1",
-      orderId: "order_MK8j9L5Q2nP3oR",
-      paymentId: "pay_MK8j9L5Q2nP3oR",
-      razorpay_signature: "signature_123",
-      plan: {
-        _id: "plan_1",
-        name: "Premium 99",
-        price: 6500,
-        currency: "INR",
-      },
-      date: "2024-01-01T10:30:00Z",
-    },
-    {
-      _id: "pay_2",
-      orderId: "order_NK7h8K4P1mO2nQ",
-      paymentId: "pay_NK7h8K4P1mO2nQ",
-      razorpay_signature: "signature_456",
-      plan: {
-        _id: "plan_2",
-        name: "Pro 20",
-        price: 350,
-        currency: "INR",
-      },
-      date: "2023-12-15T14:45:00Z",
-    },
-    {
-      _id: "pay_3",
-      orderId: "order_PL9i0M6R3pQ4sT",
-      paymentId: "pay_PL9i0M6R3pQ4sT",
-      razorpay_signature: "signature_789",
-      plan: {
-        _id: "plan_3",
-        name: "Basic 10",
-        price: 200,
-        currency: "INR",
-      },
-      date: "2023-11-20T09:15:00Z",
-    },
-  ]);
-
-  const formatMessageLimit = (limit: any) => {
-    if (!limit) return "";
-    return limit >= 1000 ? `${limit / 1000}K` : limit;
   };
 
-  const getIconForPlan = (planName: any) => {
+  const formatMessageLimit = (limit: number | undefined) => {
+    if (!limit) return "";
+    return limit >= 1000 ? `${limit / 1000}K` : limit.toString();
+  };
+
+  const getIconForPlan = (planName: string) => {
     if (planName.toLowerCase().includes("pro")) return Wifi;
     if (planName.toLowerCase().includes("premium")) return Crown;
     if (planName.toLowerCase().includes("business")) return Shield;
@@ -127,7 +137,7 @@ const PricingPlans = () => {
     return Smartphone;
   };
 
-  const getColorForPlan = (planName: any) => {
+  const getColorForPlan = (planName: string) => {
     if (planName.toLowerCase().includes("pro"))
       return "from-purple-500 to-purple-600";
     if (planName.toLowerCase().includes("premium"))
@@ -139,7 +149,7 @@ const PricingPlans = () => {
     return "from-blue-500 to-blue-600";
   };
 
-  const getFeatures = (planType: any) => {
+  const getFeatures = (planType: string) => {
     const baseFeatures = [
       "Bulk Messaging",
       "Message Scheduling",
@@ -162,13 +172,12 @@ const PricingPlans = () => {
 
     return baseFeatures;
   };
-  const [plans, setPlans] = useState([]);
 
-  const formatPrice = (price: any) => {
+  const formatPrice = (price: number) => {
     return `₹${price.toLocaleString()}`;
   };
 
-  const formatDuration = (days: any) => {
+  const formatDuration = (days: number) => {
     if (days >= 365)
       return `${Math.floor(days / 365)} Year${
         Math.floor(days / 365) > 1 ? "s" : ""
@@ -176,13 +185,14 @@ const PricingPlans = () => {
     return `${days} Days`;
   };
 
-  const formatDate = (dateString: any) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-IN", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
+
   const getDaysRemaining = (endDate: string): number => {
     const end = new Date(endDate);
     const now = new Date();
@@ -197,12 +207,12 @@ const PricingPlans = () => {
     return Math.max(0, diffDays);
   };
 
-  const getUsagePercentage = (used: any, limit: any) => {
+  const getUsagePercentage = (used: number, limit: number | undefined) => {
     if (!limit) return 0; // unlimited
     return Math.min((used / limit) * 100, 100);
   };
 
-  const handlePayment = async (planId: any) => {
+  const handlePayment = async (planId: string) => {
     setSelectedPlan(planId);
     const loaded = await loadRazorpayScript();
     if (!loaded) {
@@ -236,11 +246,11 @@ const PricingPlans = () => {
 
           setSelectedPlan(null);
         },
-        prefill: {
-          name: "Abhishek Singh", // Optional: Use logged-in user info
-          email: "abhi@example.com",
-          contact: "9999999999",
-        },
+        // prefill: {
+        //   name: "Abhishek Singh",
+        //   email: "abhi@example.com",
+        //   contact: "9999999999",
+        // },
         theme: {
           color: "#1D4ED8",
         },
@@ -255,56 +265,100 @@ const PricingPlans = () => {
     }
   };
 
-  // const handlePayment = async (planId: string) => {
-  //   setSelectedPlan(planId);
-  //   // Payment logic here
-  //   setTimeout(() => {
-  //     setSelectedPlan(null);
-  //   }, 2000);
-  // };
+  const handleManualPaymentClick = (plan: Plan) => {
+    setSelectedPlanForManual(plan);
+    setManualPaymentModalOpen(true);
+  };
 
-  useEffect(() => {
-    getAllPlans().then((data: any) => {
-      if (data?.plans) {
-        const enhancedPlans = data.plans.map((plan: any) => ({
-          ...plan,
-          description: getDescription(plan.name),
-          icon: getIconForPlan(plan.name),
-          color: getColorForPlan(plan.name),
-          features: getFeatures("premium"),
-        }));
-        setPlans(enhancedPlans);
+  const handleManualPaymentSubmit = async () => {
+    if (!selectedPlanForManual || !utrNumber || !screenshotFile) {
+      toast.error("Please fill all fields and upload a screenshot");
+      return;
+    }
+
+    setIsSubmittingManual(true);
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    try {
+      const formData = new FormData();
+      formData.append("planId", selectedPlanForManual._id);
+      formData.append("utrNumber", utrNumber);
+      if(screenshotFile)
+      formData.append("screenshot", screenshotFile);
+
+       const res = await api.post("/payment/manual-payment", formData);
+      // const result = await createManualPayment(formData);
+
+      if (res?.data?.success) {
+        toast.success("Payment submitted for approval!");
+        setManualPaymentModalOpen(false);
+        setScreenshotFile(null);
+        setUtrNumber("");
+        fetchPayments();
+      } else {
+        toast.error(res?.data?.message || "Failed to submit payment");
       }
-    });
-    getAllUserSubscriptions();
-  }, []);
+    } catch (error) {
+      console.error("Manual payment error:", error);
+      toast.error("Failed to submit payment");
+    } finally {
+      setIsSubmittingManual(false);
+    }
+  };
 
-  useEffect(() => {
-    setCurrentSubscriptions(allUserSubscriptions?.data);
-  }, [allUserSubscriptions]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setScreenshotFile(e.target.files[0]);
+    }
+  };
 
-  // Helper function to get description based on plan name
   const getDescription = (name: string) => {
-    const descriptions = {
+    const descriptions: Record<string, string> = {
       PREMIUM: "Ultimate business solution",
       "Pro 1 months": "Great for growing teams",
       Basic: "Perfect for small businesses",
     };
-    return (
-      descriptions[name as keyof typeof descriptions] ||
-      "Flexible messaging plan"
-    );
+    return descriptions[name] || "Flexible messaging plan";
   };
 
   const fetchPayments = async () => {
-    await getUserPayments();
-    setPaymentHistory(userPayments?.payments);
-    console.log(userPayments);
+    const res = await getUserPayments();
+    console.log(userPayments)
+    if (res?.payments) {
+      setPaymentHistory(res.payments);
+    }
   };
 
-  useEffect(() => {}, [userPayments]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const plansData = await getAllPlans();
+      if (plansData?.plans) {
+        const enhancedPlans = plansData.plans.map((plan: Plan) => ({
+          ...plan,
+          description: getDescription(plan.name),
+          icon: getIconForPlan(plan.name),
+          color: getColorForPlan(plan.name),
+          features: getFeatures(plan.type),
+        }));
+        setPlans(enhancedPlans);
+      }
+      await getAllUserSubscriptions();
+    };
+    fetchData();
+  }, []);
 
-  const SubscriptionCard = ({ subscription }: { subscription: any }) => {
+ 
+  useEffect(() => {
+    if (allUserSubscriptions?.data) {
+      setCurrentSubscriptions(allUserSubscriptions.data);
+    }
+  }, [allUserSubscriptions]);
+
+  const SubscriptionCard = ({
+    subscription,
+  }: {
+    subscription: Subscription;
+  }) => {
     if (!subscription) return null;
     const IconComponent = getIconForPlan(subscription.plan.name);
     const daysRemaining = getDaysRemaining(subscription.endDate);
@@ -316,12 +370,11 @@ const PricingPlans = () => {
     return (
       <div
         className={`relative bg-white rounded-3xl p-6 border transition-all duration-300 hover:shadow-xl ${
-          subscription.isActive
+          subscription.status === "active"
             ? "border-green-200 shadow-lg ring-2 ring-green-100"
             : "border-yellow-200 shadow-md ring-2 ring-yellow-100"
         }`}
       >
-        {/* Status Badge */}
         <div className="absolute top-4 right-4">
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
@@ -348,7 +401,6 @@ const PricingPlans = () => {
           </span>
         </div>
 
-        {/* Plan Header */}
         <div className="flex items-center mb-6">
           <div
             className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getColorForPlan(
@@ -362,15 +414,14 @@ const PricingPlans = () => {
               {subscription.plan.name}
             </h3>
             <p className="text-gray-600 text-sm">
-              {formatPrice(subscription?.plan?.price)} Plan
+              {formatPrice(subscription.plan.price)} Plan
             </p>
           </div>
 
-          {/* Activate Button - Only show for queued plans */}
           {subscription.status === "inactive" && (
             <button
               onClick={async () => {
-                await switchPlan(subscription?.id);
+                await switchPlan(subscription.id);
               }}
               className="mt-5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
             >
@@ -380,7 +431,6 @@ const PricingPlans = () => {
           )}
         </div>
 
-        {/* Plan Details */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center mb-2">
@@ -392,7 +442,7 @@ const PricingPlans = () => {
             <p className="text-lg font-semibold text-gray-800">
               {formatDuration(subscription.plan.durationDays)}
             </p>
-            {subscription.isActive && (
+            {subscription.status === "active" && (
               <p
                 className={`text-xs mt-1 ${
                   daysRemaining > 7 ? "text-green-600" : "text-red-600"
@@ -405,17 +455,16 @@ const PricingPlans = () => {
 
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center mb-2">
-              <Users className="w-4 h-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium text-gray-600">Devices</span>
+              <Smartphone className="w-4 h-4 text-gray-500 mr-2" />
+              <span className="text-sm font-medium text-gray-600">Device Limit</span>
             </div>
             <p className="text-lg font-semibold text-gray-800">
-              {subscription.deviceIds.length} / {subscription.plan.deviceLimit}
+              {subscription.plan.deviceLimit}
             </p>
             <p className="text-xs text-gray-500 mt-1">Connected</p>
           </div>
         </div>
 
-        {/* Message Usage */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center">
@@ -447,7 +496,6 @@ const PricingPlans = () => {
           )}
         </div>
 
-        {/* Dates */}
         <div className="flex justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
           <span>Start: {formatDate(subscription.startDate)}</span>
           <span>End: {formatDate(subscription.endDate)}</span>
@@ -455,13 +503,30 @@ const PricingPlans = () => {
       </div>
     );
   };
+
   const PaymentHistoryCard = ({ payment }: { payment: any }) => {
+    const isManualPayment = payment.mode === "manual";
+
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mr-4">
-              <CreditCard className="w-6 h-6 text-white" />
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
+                isManualPayment
+                  ? payment.status === "approved"
+                    ? "bg-gradient-to-br from-green-500 to-green-600"
+                    : payment.status === "rejected"
+                    ? "bg-gradient-to-br from-red-500 to-red-600"
+                    : "bg-gradient-to-br from-yellow-500 to-yellow-600"
+                  : "bg-gradient-to-br from-blue-500 to-blue-600"
+              }`}
+            >
+              {isManualPayment ? (
+                <FileText className="w-6 h-6 text-white" />
+              ) : (
+                <CreditCard className="w-6 h-6 text-white" />
+              )}
             </div>
             <div>
               <h4 className="font-semibold text-gray-800">
@@ -470,41 +535,95 @@ const PricingPlans = () => {
               <p className="text-sm text-gray-600">
                 {formatDate(payment.date)}
               </p>
+              {isManualPayment && (
+                <div className="mt-1">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      payment.status === "approved"
+                        ? "bg-green-100 text-green-800"
+                        : payment.status === "rejected"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {payment.status === "approved" ? (
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                    ) : payment.status === "rejected" ? (
+                      <XCircle className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Clock className="w-3 h-3 mr-1" />
+                    )}
+                    {payment.status}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <div className="text-right">
             <p className="text-xl font-bold text-gray-800">
               {formatPrice(payment.plan.price)}
             </p>
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Success
-            </span>
+            {!isManualPayment && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Success
+              </span>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">Order ID:</span>
-            <p className="font-mono text-gray-800 truncate">
-              {payment.orderId}
-            </p>
-          </div>
-          <div>
-            <span className="text-gray-500">Payment ID:</span>
-            <p className="font-mono text-gray-800 truncate">
-              {payment.paymentId}
-            </p>
-          </div>
+          {isManualPayment ? (
+            <>
+              <div>
+                <span className="text-gray-500">UTR Number:</span>
+                <p className="font-mono text-gray-800 truncate">
+                  {payment.utrNumber || "N/A"}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500">Payment Mode:</span>
+                <p className="text-gray-800">Manual Transfer</p>
+              </div>
+              {payment.screenshot && (
+                <div className="col-span-2">
+                  <span className="text-gray-500">Screenshot:</span>
+                  <a
+                    href={payment.screenshot}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center"
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    View Proof
+                  </a>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div>
+                <span className="text-gray-500">Order ID:</span>
+                <p className="font-mono text-gray-800 truncate">
+                  {payment.orderId}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500">Payment ID:</span>
+                <p className="font-mono text-gray-800 truncate">
+                  {payment.paymentId}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Dashboard Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4 ">
+      <div className="max-w-7xl mx-auto relative">
         <div className="text-center mb-12">
           <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full text-sm font-semibold mb-6 shadow-lg">
             <Activity className="w-5 h-5 mr-2" />
@@ -519,7 +638,6 @@ const PricingPlans = () => {
           </p>
         </div>
 
-        {/* Tab Navigation */}
         <div className="mb-12">
           <div className="flex justify-center">
             <div className="bg-white rounded-2xl p-2 border border-gray-200 shadow-lg">
@@ -562,7 +680,6 @@ const PricingPlans = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
         {activeTab === "current" && (
           <div className="mb-12">
             <div className="text-center mb-8">
@@ -576,9 +693,9 @@ const PricingPlans = () => {
 
             {currentSubscriptions?.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {currentSubscriptions.map((subscription: any) => (
+                {currentSubscriptions.map((subscription) => (
                   <SubscriptionCard
-                    key={subscription._id}
+                    key={subscription.id}
                     subscription={subscription}
                   />
                 ))}
@@ -641,7 +758,6 @@ const PricingPlans = () => {
 
         {activeTab === "plans" && (
           <div>
-            {/* Pricing Plans Section */}
             <div className="text-center mb-12">
               <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm font-semibold mb-6 shadow-lg">
                 <Zap className="w-5 h-5 mr-2" />
@@ -656,7 +772,7 @@ const PricingPlans = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {plans.map((plan: any) => {
+              {plans.map((plan) => {
                 const IconComponent = plan.icon;
                 return (
                   <div
@@ -669,7 +785,6 @@ const PricingPlans = () => {
                     onMouseEnter={() => setHoveredPlan(plan._id)}
                     onMouseLeave={() => setHoveredPlan(null)}
                   >
-                    {/* Popular Badge */}
                     {plan.popular && (
                       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                         <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-full shadow-lg">
@@ -679,7 +794,6 @@ const PricingPlans = () => {
                       </div>
                     )}
 
-                    {/* Plan Header */}
                     <div className="flex items-center mb-6">
                       <div
                         className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${plan.color} flex items-center justify-center mr-4 shadow-lg`}
@@ -696,7 +810,6 @@ const PricingPlans = () => {
                       </div>
                     </div>
 
-                    {/* Plan Details */}
                     <div className="space-y-4 mb-8">
                       <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
                         <div className="flex items-center">
@@ -755,13 +868,12 @@ const PricingPlans = () => {
                       </div>
                     </div>
 
-                    {/* Features */}
                     <div className="mb-8">
                       <h4 className="text-lg font-semibold text-gray-800 mb-4">
                         Features Included:
                       </h4>
                       <div className="space-y-3">
-                        {plan.features?.map((feature: any, index: number) => (
+                        {plan.features?.map((feature, index) => (
                           <div key={index} className="flex items-center">
                             <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                               <CheckCircle className="w-3 h-3 text-green-600" />
@@ -774,7 +886,6 @@ const PricingPlans = () => {
                       </div>
                     </div>
 
-                    {/* Pricing */}
                     <div className="mb-8">
                       <div className="text-center">
                         <div className="text-4xl font-bold text-gray-800 mb-2">
@@ -786,33 +897,41 @@ const PricingPlans = () => {
                       </div>
                     </div>
 
-                    {/* CTA Button */}
-                    <button
-                      onClick={() => handlePayment(plan._id)}
-                      className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${
-                        selectedPlan === plan._id
-                          ? "bg-green-500 text-white"
-                          : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
-                      }`}
-                    >
-                      {selectedPlan === plan._id ? (
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 mr-2" />
-                          Get Started
-                        </div>
-                      )}
-                    </button>
+                    <div className="flex flex-col space-y-3 mt-6">
+                      <button
+                        onClick={() => handlePayment(plan._id)}
+                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${
+                          selectedPlan === plan._id
+                            ? "bg-green-500 text-white"
+                            : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
+                        }`}
+                      >
+                        {selectedPlan === plan._id ? (
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Processing...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <CreditCard className="w-5 h-5 mr-2" />
+                            Pay Online
+                          </div>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => handleManualPaymentClick(plan)}
+                        className="w-full py-3 px-6 rounded-2xl font-semibold bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 hover:shadow-md transition-all duration-300 flex items-center justify-center"
+                      >
+                        <FileText className="w-5 h-5 mr-2" />
+                        Pay Manually
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Trust Indicators */}
             <div className="mt-16 text-center">
               <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg max-w-4xl mx-auto">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -852,7 +971,6 @@ const PricingPlans = () => {
               </div>
             </div>
 
-            {/* Help Section */}
             <div className="mt-16 text-center">
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 text-white max-w-3xl mx-auto">
                 <h3 className="text-3xl font-bold mb-4">Need Help Choosing?</h3>
@@ -874,6 +992,131 @@ const PricingPlans = () => {
             </div>
           </div>
         )}
+
+        {/* Payment Modal  */}
+        <Dialog
+          open={manualPaymentModalOpen}
+          onOpenChange={setManualPaymentModalOpen}
+        >
+          <DialogContent className="max-w-md p-6 rounded-lg max-h-[90vh] overflow-y-auto scrollbar-hide top-[50%] -translate-y-1/2">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                Manual Payment Submission
+              </DialogTitle>
+              <DialogDescription>
+                Upload your payment screenshot and enter UTR number for
+                verification
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              <div>
+                <Label htmlFor="plan-name">Selected Plan</Label>
+                <Input
+                  id="plan-name"
+                  value={selectedPlanForManual?.name || ""}
+                  disabled
+                  className="mt-1 font-medium"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Amount:{" "}
+                  {selectedPlanForManual
+                    ? formatPrice(selectedPlanForManual.price)
+                    : ""}
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="utr-number">UTR Number*</Label>
+                <Input
+                  id="utr-number"
+                  placeholder="Enter UTR/Transaction reference number"
+                  value={utrNumber}
+                  onChange={(e) => setUtrNumber(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Unique transaction reference number from your bank
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="screenshot">Payment Screenshot*</Label>
+                <div className="mt-1 flex items-center gap-4">
+                  <Label
+                    htmlFor="screenshot-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span>{" "}
+                        or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG (MAX. 5MB)
+                      </p>
+                    </div>
+                    <Input
+                      id="screenshot-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </Label>
+                </div>
+                {screenshotFile && (
+                  <div className="mt-2 flex items-center text-sm text-gray-600">
+                    <FileText className="flex-shrink-0 h-4 w-4 mr-2" />
+                    <span>{screenshotFile.name}</span>
+                    <span className="ml-2 text-gray-500">
+                      {(screenshotFile.size / 1024 / 1024).toFixed(2)}MB
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setManualPaymentModalOpen(false)}
+                  disabled={isSubmittingManual}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleManualPaymentSubmit}
+                  disabled={isSubmittingManual || !utrNumber || !screenshotFile}
+                >
+                  {isSubmittingManual ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit for Approval"
+                  )}
+                </Button>
+              </div>
+
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      Your subscription will be activated after manual
+                      verification. This process may take up to 24 hours during
+                      business days.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

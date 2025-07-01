@@ -24,7 +24,7 @@ interface AuthContextType {
   sendOtp: (email: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
   getActivePlan: () => Promise<void>;
-  getAllPlans: () => Promise<void>;
+  getAllPlans: () => Promise<any>;
   activePlan: any;
   allPlans: any;
   createOrder: (planId: string) => Promise<{
@@ -37,7 +37,7 @@ interface AuthContextType {
   }>;
   getAllUserSubscriptions: () => Promise<void>;
   allUserSubscriptions: any;
-  getUserPayments: () => Promise<void>;
+  getUserPayments: () => Promise<any>;
   userPayments: any;
   switchPlan: (planId: string) => Promise<void>;
 }
@@ -321,6 +321,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const switchPlan = async (subscriptionId: string) => {
+    
     try {
       const res = await api.post("/plan/switch-plan", { subscriptionId });
       if (res?.data?.success) {

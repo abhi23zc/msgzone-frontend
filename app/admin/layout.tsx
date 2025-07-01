@@ -20,8 +20,10 @@ export default function RootLayout({
           <Toaster />
           <ProtectedAdmin>
             <AdminProvider>
-              <Sidebar />
-              {children}
+              <div className="flex h-screen overflow-hidden w-screen">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">{children}</main>
+              </div>
             </AdminProvider>
           </ProtectedAdmin>
         </div>

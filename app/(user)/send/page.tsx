@@ -1,5 +1,6 @@
 "use client";
-import {RenderWhatsapp }from './RenderWhatsapp' 
+import DOMPurify from "dompurify";
+import { convertToWhatsAppText, RenderWhatsapp } from "./RenderWhatsapp";
 import {
   Form,
   Input,
@@ -24,6 +25,7 @@ import PhoneUploaderInput from "./UploadContact";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import ProtectedRoute from "@/components/Protected";
+import { MessageCircleCodeIcon } from "lucide-react";
 const { TextArea } = Input;
 
 // Dynamically import ReactQuill with SSR disabled
@@ -97,7 +99,8 @@ function Send() {
 
   const onFinish = async (values: any) => {
     const numbers = values.recipientNumber;
-    console.log(values?.schedule?.toISOString());
+    // console.log(values?.schedule?.toISOString());
+    values.message = convertToWhatsAppText(values.message)
     if (values?.schedule?.toISOString()) {
       onSchedule(values);
     } else {
@@ -118,7 +121,7 @@ function Send() {
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
-        } 
+        }
       } else {
         const msg: any = await sendBulkMessage({
           numbers: numbers,
@@ -128,13 +131,12 @@ function Send() {
           timer: values.timer || 2,
         });
         if (msg) {
-
           toast.success("Messages sent successfully");
 
           // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
-        } 
+        }
       }
     }
   };
@@ -206,19 +208,22 @@ function Send() {
     ],
   };
 
-
   return (
     <section className="p-10 m-3 w-full ">
       <div className="flex flex-col lg:flex-row gap-6 ">
         {/* Left Column - Form */}
         <div className="flex-1 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
-          <h1 className="text-2xl font-semibold mb-6 text-gray-800">Send Message</h1>
+          <h1 className="text-2xl font-semibold mb-6 text-gray-800">
+            Send Message
+          </h1>
 
           <Form form={form} layout="vertical" onFinish={onFinish}>
             <Form.Item
               label="From WhatsApp Number"
               name="fromNumber"
-              rules={[{ required: true, message: "Please select WhatsApp number" }]}
+              rules={[
+                { required: true, message: "Please select WhatsApp number" },
+              ]}
             >
               <Select
                 placeholder="Select WhatsApp number"
@@ -239,7 +244,13 @@ function Send() {
             <Form.Item
               label="Recipient Numbers"
               name="recipientNumber"
-              rules={[{ required: true, message: "Please enter at least one recipient's WhatsApp number" }]}
+              rules={[
+                {
+                  required: true,
+                  message:
+                    "Please enter at least one recipient's WhatsApp number",
+                },
+              ]}
             >
               <PhoneUploaderInput messageContent={messageContent} />
             </Form.Item>
@@ -254,18 +265,32 @@ function Send() {
                 modules={modules}
                 className="h-32"
                 onChange={(content) => {
+                  console.log(content);
                   setMessageContent(content);
-                  form.setFieldValue('message', content);
+                  form.setFieldValue("message", content);
                 }}
               />
             </Form.Item>
 
             <div className="flex justify-end mt-10">
               <Link href={"/ai/template"} target="_blank">
-                <Button type="link" className="text-blue-600 hover:text-blue-700">
+                <Button
+                  type="link"
+                  className="text-blue-600 hover:text-blue-700"
+                >
                   <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
                     </svg>
                     Use AI Template
                   </span>
@@ -286,7 +311,9 @@ function Send() {
                     <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
                       <UploadOutlined className="text-xl text-blue-500" />
                     </div>
-                    <p className="text-base font-medium text-gray-900 mb-1">Drop files here or click to upload</p>
+                    <p className="text-base font-medium text-gray-900 mb-1">
+                      Drop files here or click to upload
+                    </p>
                     <p className="text-sm text-gray-500">
                       Support for JPG, PNG, PDF, MP3, MP4 files up to 5MB
                     </p>
@@ -331,7 +358,9 @@ function Send() {
                           <Input.TextArea
                             placeholder="Add a caption (optional)"
                             value={attachment.caption}
-                            onChange={(e) => handleCaptionChange(index, e.target.value)}
+                            onChange={(e) =>
+                              handleCaptionChange(index, e.target.value)
+                            }
                             className="w-full"
                             autoSize={{ minRows: 1, maxRows: 3 }}
                           />
@@ -359,11 +388,7 @@ function Send() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                  <Form.Item
-                    name="schedule"
-                    rules={[]}
-                    className="mb-0"
-                  >
+                  <Form.Item name="schedule" rules={[]} className="mb-0">
                     <DatePicker
                       showTime
                       format="YYYY-MM-DD HH:mm"
@@ -372,11 +397,7 @@ function Send() {
                     />
                   </Form.Item>
 
-                  <Form.Item
-                    name="timer"
-                    rules={[]}
-                    className="mb-0"
-                  >
+                  <Form.Item name="timer" rules={[]} className="mb-0">
                     <Input
                       prefix={<ClockCircleOutlined className="text-gray-400" />}
                       placeholder="Delay (seconds)"
@@ -391,7 +412,9 @@ function Send() {
 
         {/* Right Column - WhatsApp Preview */}
         <div className="lg:w-[400px] bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">WhatsApp Preview</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">
+            WhatsApp Preview
+          </h3>
           <div className="relative w-[280px] h-[560px] mx-auto">
             {/* Phone Frame */}
             <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
@@ -421,11 +444,11 @@ function Send() {
                       }
                     `}
                   </style>
-                  <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] max-h-full overflow-y-auto hide-scrollbar"
+                  <div
+                    className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] max-h-full overflow-y-auto hide-scrollbar"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
-                    
-                    {RenderWhatsapp(messageContent)}  
+                    {RenderWhatsapp(messageContent)}
                   </div>
 
                   {/* Attachments */}
