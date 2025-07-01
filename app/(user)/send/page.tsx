@@ -10,6 +10,7 @@ import {
   message,
   Image,
   DatePicker,
+  Switch,
 } from "antd";
 import {
   UploadOutlined,
@@ -26,6 +27,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import ProtectedRoute from "@/components/Protected";
 import { MessageCircleCodeIcon } from "lucide-react";
+import api from "@/services/api";
 const { TextArea } = Input;
 
 // Dynamically import ReactQuill with SSR disabled
@@ -100,7 +102,7 @@ function Send() {
   const onFinish = async (values: any) => {
     const numbers = values.recipientNumber;
     // console.log(values?.schedule?.toISOString());
-    values.message = convertToWhatsAppText(values.message)
+    values.message = convertToWhatsAppText(values.message);
     if (values?.schedule?.toISOString()) {
       onSchedule(values);
     } else {
@@ -208,6 +210,19 @@ function Send() {
     ],
   };
 
+  const handleCode = async (value: boolean) => {
+    try {
+      const res = await api.get("/auth/enable91");
+
+      if (!res?.data?.success) {
+        toast.error("Something error occured");
+      }
+    } catch (e) {
+      toast.error("Something error occured");
+      console.log(e);
+    }
+  };
+
   return (
     <section className="p-10 m-3 w-full ">
       <div className="flex flex-col lg:flex-row gap-6 ">
@@ -239,6 +254,22 @@ function Send() {
                     )
                 )}
               </Select>
+            </Form.Item>
+            <Form.Item
+              label="Enable 91"
+              name="enable91"
+              valuePropName="checked"
+              initialValue={user?.data?.user?.enableCode ?? false}
+              className="flex justify-end items-end"
+            >
+              <Switch
+                onChange={(e) => {
+                  handleCode(e);
+                }}
+                checkedChildren="91 Enabled"
+                unCheckedChildren="91 Disabled"
+                className="bg-gray-300 w-10 "
+              />
             </Form.Item>
 
             <Form.Item
