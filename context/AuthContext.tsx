@@ -229,7 +229,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.log("Error getting active plan:", error);
       const err = error as AxiosError<{ message: string }>;
-      toast.error(err.response?.data?.message || "Failed to fetch active plan");
+      // toast.error(err.response?.data?.message || "Failed to fetch active plan");
       setLoading(false);
       return null;
     }

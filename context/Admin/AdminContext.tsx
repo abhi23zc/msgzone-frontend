@@ -120,6 +120,7 @@ export const AdminProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const res = await api.get("/admin/users");
       if (res?.data?.status) {
+        console.log(res?.data)
         setallUsers(res.data.data);
       } else {
         toast.error("Unable to fetch users");

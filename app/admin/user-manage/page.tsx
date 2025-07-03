@@ -35,6 +35,7 @@ interface User {
     name: string;
     expiresAt: string;
     limit: number;
+    usedMessages:number;
   };
   usage: {
     messagesSent: number;
@@ -269,22 +270,22 @@ function UserManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-medium">{user.plan.name}</div>
+                      <div className="font-medium">{user?.plan?.name || "No Plan"}</div>
                       <div className="text-sm text-muted-foreground">
                         Expires:{" "}
-                        {new Date(user.plan.expiresAt).toLocaleDateString()}
+                        {user?.plan?.expiresAt ? new Date(user?.plan?.expiresAt).toLocaleDateString() : "---"}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                   {/* ❌ This has to be change  */}
                     {/* <div className="text-sm">
-                      Messages: {user.usage.messagesSent}/
-                      {user.usage.messagesLimit}
+                      Messages: {user?.usage?.messagesSent}/
+                      {user?.usage?.messagesLimit}
                     </div> */}
                     <div className="text-sm">
-                      Messages: {user.usage.messagesSent}/
-                      Unlimited
+                      Messages: {user?.plan?.usedMessages || 0}/  
+                      {user?.usage?.messagesLimit || 0}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
