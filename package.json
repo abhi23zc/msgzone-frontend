@@ -33,6 +33,7 @@
     "framer-motion": "^12.18.1",
     "lucide-react": "^0.513.0",
     "next": "13.5.11",
+    "nodemailer": "^7.0.4",
     "quill": "^2.0.3",
     "razorpay": "^2.9.6",
     "react": "^18",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10",

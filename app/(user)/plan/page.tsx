@@ -624,19 +624,7 @@ const PricingPlans = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4 ">
       <div className="max-w-7xl mx-auto relative">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full text-sm font-semibold mb-6 shadow-lg">
-            <Activity className="w-5 h-5 mr-2" />
-            Subscription Dashboard
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent mb-4">
-            Manage Your Plans
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Track your subscriptions, view payment history, and upgrade your
-            plans
-          </p>
-        </div>
+      
 
         <div className="mb-12">
           <div className="flex justify-center">

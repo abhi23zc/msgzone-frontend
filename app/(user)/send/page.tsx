@@ -11,6 +11,7 @@ import {
   Image,
   DatePicker,
   Switch,
+  Tooltip,
 } from "antd";
 import {
   UploadOutlined,
@@ -260,18 +261,22 @@ function Send() {
               name="enable91"
               valuePropName="checked"
               initialValue={user?.data?.user?.enableCode ?? false}
-              className="flex justify-end items-end"
+              className=""
             >
-              <Switch
-                onChange={(e) => {
-                  handleCode(e);
-                }}
-                checkedChildren="91 Enabled"
-                unCheckedChildren="91 Disabled"
-                className="bg-gray-300 w-10 "
-              />
+              <Tooltip 
+                title="When enabled, you don't need to add country code (91) for Indian numbers. When disabled, you must provide the full number with country code."
+                placement="right"
+              >
+                <Switch
+                  onChange={(e) => {
+                    handleCode(e);
+                  }}
+                  checkedChildren="91 Enabled"
+                  unCheckedChildren="91 Disabled"
+                  className="bg-gray-300 w-10"
+                />
+              </Tooltip>
             </Form.Item>
-
             <Form.Item
               label="Recipient Numbers"
               name="recipientNumber"
@@ -283,9 +288,34 @@ function Send() {
                 },
               ]}
             >
-              <PhoneUploaderInput messageContent={messageContent} />
-            </Form.Item>
+              <div className="space-y-4">
+                <PhoneUploaderInput messageContent={messageContent} />
+                
+                <div className="flex gap-4">
+                  <a 
+                    href="/Msgzone_Demo_Sheet.xlsx" 
+                    download
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download Excel (XLSX) Demo
+                  </a>
 
+                  <a
+                    href="/contacts.txt"
+                    download 
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download TXT Demo
+                  </a>
+                </div>
+              </div>
+            </Form.Item>
             <Form.Item
               label="Message"
               name="message"

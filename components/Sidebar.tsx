@@ -9,6 +9,7 @@ import {
   UserOutlined,
   PieChartOutlined,
   LogoutOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Layout, Menu, Avatar, Typography, Space } from "antd";
@@ -37,9 +38,9 @@ function getItem(
 
 const items: MenuItem[] = [
   getItem("Dashboard", "1", <PieChartOutlined />),
-  getItem("Send Message", "2", <DesktopOutlined />),
-  getItem("Message Report", "3", <UserOutlined />),
-  getItem("Templates", "4", <BookOutlined />),
+  getItem("Send Message", "2", <MessageOutlined />),
+  getItem("Message Report", "3", <BookOutlined />),
+  // getItem("Templates", "4", <BookOutlined />),
   getItem("Plans", "5", <BulbOutlined />),
   getItem("Developer API", "6", <ApiOutlined />),
   getItem("Help", "7", <ToolOutlined />),

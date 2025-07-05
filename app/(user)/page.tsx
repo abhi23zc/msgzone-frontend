@@ -260,7 +260,7 @@ const Home: FC = () => {
           <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
             <Avatar
               size={56}
-              src={user?.data?.user?.avatar || undefined}
+              src="/assets/user.png"
               className="shadow-lg min-w-[56px]"
             />
             <div className="min-w-0">
