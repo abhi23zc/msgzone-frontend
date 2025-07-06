@@ -21,6 +21,7 @@ function LoginPage() {
 
   const onFinish: FormProps<FieldType>["onFinish"] = async (values) => {
     try {
+      // console.log(values)
       await login({email:values.email||"", password:values.password || ""})
       // await login(values);
       // router.push("/");
@@ -94,7 +95,7 @@ function LoginPage() {
                 <Checkbox>Remember me</Checkbox>
               </Form.Item>
 
-              <Link href={""}>
+              <Link href="/forgot">
                 <Button type="link" className="text-xs w-24">
                   Forgot Password?
                 </Button>
@@ -114,14 +115,14 @@ function LoginPage() {
               </Button>
             </Form.Item>
 
-            <div className="flex items-center w-full px-2">
+            {/* <div className="flex items-center w-full px-2">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="mx-4 text-gray-700 font-medium">Or</span>
               <div className="flex-grow border-t border-gray-200"></div>
-            </div>
+            </div> */}
           </Form>
 
-          <SocialIcons />
+          {/* <SocialIcons /> */}
         </div>
 
         <div className="flex justify-center items-center bg-gray-100 w-full py-3 gap-2">

@@ -17,7 +17,11 @@ import {
   CreditCard,
   Calendar,
   Clock,
+  Router,
+  CheckIcon,
+  Wallet,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FC } from "react";
 import toast from "react-hot-toast";
 
@@ -34,6 +38,7 @@ const Home: FC = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [deviceName, setdeviceName] = useState("");
   const [deleteLoading, setdeleteLoading] = useState(false);
+  const router = useRouter()
 
   useEffect(() => {
     getAllMessagesCount();
@@ -86,7 +91,7 @@ const Home: FC = () => {
     }
   };
 
-  useEffect(() => {}, [TimeoutInterval]);
+  useEffect(() => { }, [TimeoutInterval]);
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
 
@@ -138,7 +143,7 @@ const Home: FC = () => {
       dataIndex: "number",
       key: "number",
       responsive: ["md", "lg", "xl"],
-      render: (text: string) =>(
+      render: (text: string) => (
         <span className="font-normal text-slate-800 break-all">+{text}</span>
       )
     },
@@ -307,9 +312,8 @@ const Home: FC = () => {
           {summaryCards.map((card, idx) => (
             <div
               key={idx}
-              className={`bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden min-w-0 ${
-                card.onClick ? "cursor-pointer" : ""
-              }`}
+              className={`bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-500 group relative overflow-hidden min-w-0 ${card.onClick ? "cursor-pointer" : ""
+                }`}
               onClick={card.onClick}
             >
               <div
@@ -496,20 +500,19 @@ const Home: FC = () => {
                     {activePlan?.data?.plan?.messageLimit === -1
                       ? "Unlimited"
                       : activePlan?.data?.plan?.messageLimit -
-                        activePlan?.data?.usedMessages}
+                      activePlan?.data?.usedMessages}
                   </strong>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
                     className="bg-green-600 h-2.5 rounded-full"
                     style={{
-                      width: `${
-                        activePlan?.data?.plan?.messageLimit === -1
-                          ? 0
-                          : (activePlan?.data?.usedMessages /
-                              activePlan?.data?.plan?.messageLimit) *
-                            100
-                      }%`,
+                      width: `${activePlan?.data?.plan?.messageLimit === -1
+                        ? 0
+                        : (activePlan?.data?.usedMessages /
+                          activePlan?.data?.plan?.messageLimit) *
+                        100
+                        }%`,
                     }}
                   ></div>
                 </div>
@@ -517,7 +520,13 @@ const Home: FC = () => {
             </div>
           </div>
         ) : (
-          <p>No active plan details available.</p>
+          <div className="flex flex-col items-center justify-center py-8 " onClick={()=> router.push("/plan")}>
+            <p className="text-lg text-gray-700 mb-4">No active plan details available.</p>
+            <button type="button" className="w-40 py-3 active:scale-95 transition text-sm text-white rounded-full bg-green-500 flex items-center justify-center gap-2">
+             <Wallet/>
+              <p className="mb-0.5 font-semibold">Subscribe now</p>
+            </button>
+          </div>
         )}
 
         {allPlans && allPlans.length > 0 && (

@@ -179,9 +179,8 @@ const PricingPlans = () => {
 
   const formatDuration = (days: number) => {
     if (days >= 365)
-      return `${Math.floor(days / 365)} Year${
-        Math.floor(days / 365) > 1 ? "s" : ""
-      }`;
+      return `${Math.floor(days / 365)} Year${Math.floor(days / 365) > 1 ? "s" : ""
+        }`;
     return `${days} Days`;
   };
 
@@ -283,14 +282,14 @@ const PricingPlans = () => {
       const formData = new FormData();
       formData.append("planId", selectedPlanForManual._id);
       formData.append("utrNumber", utrNumber);
-      if(screenshotFile)
-      formData.append("screenshot", screenshotFile);
+      if (screenshotFile)
+        formData.append("screenshot", screenshotFile);
 
-       const res = await api.post("/payment/manual-payment", formData);
+      const res = await api.post("/payment/manual-payment", formData);
       // const result = await createManualPayment(formData);
 
       if (res?.data?.success) {
-        toast.success("Payment submitted for approval!");
+        toast.success(res?.data?.message || "Payment submitted for approval!");
         setManualPaymentModalOpen(false);
         setScreenshotFile(null);
         setUtrNumber("");
@@ -329,25 +328,27 @@ const PricingPlans = () => {
     }
   };
 
+  const fetchallPlans = async () => {
+    const plansData = await getAllPlans();
+    if (plansData?.plans) {
+      const enhancedPlans = plansData.plans.map((plan: Plan) => ({
+        ...plan,
+        description: getDescription(plan.name),
+        icon: getIconForPlan(plan.name),
+        color: getColorForPlan(plan.name),
+        features: getFeatures(plan.type),
+      }));
+      setPlans(enhancedPlans);
+    }
+    await getAllUserSubscriptions();
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const plansData = await getAllPlans();
-      if (plansData?.plans) {
-        const enhancedPlans = plansData.plans.map((plan: Plan) => ({
-          ...plan,
-          description: getDescription(plan.name),
-          icon: getIconForPlan(plan.name),
-          color: getColorForPlan(plan.name),
-          features: getFeatures(plan.type),
-        }));
-        setPlans(enhancedPlans);
-      }
-      await getAllUserSubscriptions();
-    };
-    fetchData();
+
+    fetchallPlans();
   }, []);
 
- 
+
   useEffect(() => {
     if (allUserSubscriptions?.data) {
       setCurrentSubscriptions(allUserSubscriptions.data);
@@ -369,21 +370,19 @@ const PricingPlans = () => {
 
     return (
       <div
-        className={`relative bg-white rounded-3xl p-6 border transition-all duration-300 hover:shadow-xl ${
-          subscription.status === "active"
-            ? "border-green-200 shadow-lg ring-2 ring-green-100"
-            : "border-yellow-200 shadow-md ring-2 ring-yellow-100"
-        }`}
+        className={`relative bg-white rounded-3xl p-6 border transition-all duration-300 hover:shadow-xl ${subscription.status === "active"
+          ? "border-green-200 shadow-lg ring-2 ring-green-100"
+          : "border-yellow-200 shadow-md ring-2 ring-yellow-100"
+          }`}
       >
         <div className="absolute top-4 right-4">
           <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-              subscription.status === "active"
-                ? "bg-green-100 text-green-800"
-                : subscription.status === "expired"
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${subscription.status === "active"
+              ? "bg-green-100 text-green-800"
+              : subscription.status === "expired"
                 ? "bg-red-100 text-red-800"
                 : "bg-yellow-100 text-yellow-800"
-            }`}
+              }`}
           >
             {subscription.status === "active" ? (
               <>
@@ -444,9 +443,8 @@ const PricingPlans = () => {
             </p>
             {subscription.status === "active" && (
               <p
-                className={`text-xs mt-1 ${
-                  daysRemaining > 7 ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-xs mt-1 ${daysRemaining > 7 ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
               </p>
@@ -483,13 +481,12 @@ const PricingPlans = () => {
           {subscription.plan.type !== "unlimited" && (
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  usagePercentage > 80
-                    ? "bg-red-500"
-                    : usagePercentage > 60
+                className={`h-2 rounded-full transition-all duration-300 ${usagePercentage > 80
+                  ? "bg-red-500"
+                  : usagePercentage > 60
                     ? "bg-yellow-500"
                     : "bg-green-500"
-                }`}
+                  }`}
                 style={{ width: `${usagePercentage}%` }}
               ></div>
             </div>
@@ -512,15 +509,14 @@ const PricingPlans = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
-                isManualPayment
-                  ? payment.status === "approved"
-                    ? "bg-gradient-to-br from-green-500 to-green-600"
-                    : payment.status === "rejected"
+              className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${isManualPayment
+                ? payment.status === "approved"
+                  ? "bg-gradient-to-br from-green-500 to-green-600"
+                  : payment.status === "rejected"
                     ? "bg-gradient-to-br from-red-500 to-red-600"
                     : "bg-gradient-to-br from-yellow-500 to-yellow-600"
-                  : "bg-gradient-to-br from-blue-500 to-blue-600"
-              }`}
+                : "bg-gradient-to-br from-blue-500 to-blue-600"
+                }`}
             >
               {isManualPayment ? (
                 <FileText className="w-6 h-6 text-white" />
@@ -538,13 +534,12 @@ const PricingPlans = () => {
               {isManualPayment && (
                 <div className="mt-1">
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      payment.status === "approved"
-                        ? "bg-green-100 text-green-800"
-                        : payment.status === "rejected"
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${payment.status === "approved"
+                      ? "bg-green-100 text-green-800"
+                      : payment.status === "rejected"
                         ? "bg-red-100 text-red-800"
                         : "bg-yellow-100 text-yellow-800"
-                    }`}
+                      }`}
                   >
                     {payment.status === "approved" ? (
                       <CheckCircle className="w-3 h-3 mr-1" />
@@ -624,19 +619,21 @@ const PricingPlans = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 py-8 px-4 ">
       <div className="max-w-7xl mx-auto relative">
-      
+
 
         <div className="mb-12">
           <div className="flex justify-center">
             <div className="bg-white rounded-2xl p-2 border border-gray-200 shadow-lg">
               <div className="flex space-x-2">
                 <button
-                  onClick={() => setActiveTab("current")}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    activeTab === "current"
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                      : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                  }`}
+                  onClick={() => {
+                    getAllUserSubscriptions()
+                    setActiveTab("current")
+                  }}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${activeTab === "current"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    }`}
                 >
                   Current Subscriptions
                 </button>
@@ -645,21 +642,19 @@ const PricingPlans = () => {
                     fetchPayments();
                     setActiveTab("history");
                   }}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    activeTab === "history"
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                      : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                  }`}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${activeTab === "history"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    }`}
                 >
                   Payment History
                 </button>
                 <button
                   onClick={() => setActiveTab("plans")}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    activeTab === "plans"
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                      : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                  }`}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${activeTab === "plans"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    }`}
                 >
                   Available Plans
                 </button>
@@ -670,8 +665,8 @@ const PricingPlans = () => {
 
         {activeTab === "current" && (
           <div className="mb-12">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-800">
                 Your Subscriptions
               </h2>
               <p className="text-gray-600">
@@ -689,7 +684,7 @@ const PricingPlans = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16">
+              <div className="text-center">
                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <AlertCircle className="w-12 h-12 text-gray-400" />
                 </div>
@@ -765,11 +760,10 @@ const PricingPlans = () => {
                 return (
                   <div
                     key={plan._id}
-                    className={`relative bg-white rounded-3xl p-8 border transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
-                      plan.popular
-                        ? "border-indigo-200 ring-2 ring-indigo-100 shadow-xl"
-                        : "border-gray-200 shadow-lg hover:border-indigo-200"
-                    }`}
+                    className={`relative bg-white rounded-3xl p-8 border transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${plan.popular
+                      ? "border-indigo-200 ring-2 ring-indigo-100 shadow-xl"
+                      : "border-gray-200 shadow-lg hover:border-indigo-200"
+                      }`}
                     onMouseEnter={() => setHoveredPlan(plan._id)}
                     onMouseLeave={() => setHoveredPlan(null)}
                   >
@@ -845,11 +839,10 @@ const PricingPlans = () => {
                           </span>
                         </div>
                         <span
-                          className={`font-semibold px-3 py-1 rounded-full text-sm ${
-                            plan.type === "unlimited"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
+                          className={`font-semibold px-3 py-1 rounded-full text-sm ${plan.type === "unlimited"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
+                            }`}
                         >
                           {plan.type === "unlimited" ? "Unlimited" : "Limited"}
                         </span>
@@ -886,13 +879,12 @@ const PricingPlans = () => {
                     </div>
 
                     <div className="flex flex-col space-y-3 mt-6">
-                      <button
+                      {/* <button
                         onClick={() => handlePayment(plan._id)}
-                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${
-                          selectedPlan === plan._id
+                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${selectedPlan === plan._id
                             ? "bg-green-500 text-white"
                             : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
-                        }`}
+                          }`}
                       >
                         {selectedPlan === plan._id ? (
                           <div className="flex items-center justify-center">
@@ -905,14 +897,29 @@ const PricingPlans = () => {
                             Pay Online
                           </div>
                         )}
-                      </button>
+                      </button> */}
 
-                      <button
+                      {/* <button
                         onClick={() => handleManualPaymentClick(plan)}
                         className="w-full py-3 px-6 rounded-2xl font-semibold bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 hover:shadow-md transition-all duration-300 flex items-center justify-center"
                       >
                         <FileText className="w-5 h-5 mr-2" />
                         Pay Manually
+                      </button> */}
+
+                      <button
+                        onClick={() => handleManualPaymentClick(plan)}
+                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${selectedPlan === plan._id
+                          ? "bg-green-500 text-white"
+                          : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
+                          }`}
+                      >
+
+                        <div className="flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 mr-2" />
+                          Pay
+                        </div>
+
                       </button>
                     </div>
                   </div>

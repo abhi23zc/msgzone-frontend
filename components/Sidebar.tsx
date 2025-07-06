@@ -51,7 +51,7 @@ const Sidebar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const hideOnPaths = ["/login", "/register", "/verify"];
+  const hideOnPaths = ["/login", "/register", "/verify", "/forgot"];
   const shouldHideSidebar = hideOnPaths.includes(pathname);
 
   if (shouldHideSidebar) return null;
@@ -135,6 +135,7 @@ const Sidebar: React.FC = () => {
               if (key === "3") router.push("/reports");
               if (key === "6") router.push("/api");
               if (key === "5") router.push("/plan");
+              if (key === "7") router.push("/help");
             }}
             items={items.map((item:any) => ({
               ...item,

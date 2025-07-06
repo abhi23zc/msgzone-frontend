@@ -8,11 +8,19 @@ import toast from "react-hot-toast";
 interface AuthContextType {
   user: any;
   loading: boolean;
-  login: (credentials: {
+  login: ({
+    email,
+    password,
+  }: {
     email: string | null;
     password: string | null;
   }) => Promise<void>;
-  register: (credentials: {
+  register: ({
+    name,
+    phone,
+    email,
+    password,
+  }: {
     name: string | null;
     phone: string | null;
     email: string | null;
@@ -23,6 +31,10 @@ interface AuthContextType {
   error: null | string;
   sendOtp: (email: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
+  // Reset password functions
+  forgotPassword: (email: string) => Promise<any>;
+  verifyResetOtp: (email: string, otp: string) => Promise<any>;
+  resetPassword: (resetToken: string, newPassword: string) => Promise<any>;
   getActivePlan: () => Promise<void>;
   getAllPlans: () => Promise<any>;
   activePlan: any;
@@ -51,6 +63,9 @@ const AuthContext = createContext<AuthContextType>({
   checkUser: async () => {},
   sendOtp: async () => {},
   verifyOtp: async () => {},
+  forgotPassword: async () => {},
+  verifyResetOtp: async () => {},
+  resetPassword: async () => {},
   error: null,
   getActivePlan: async () => {},
   getAllPlans: async () => {},
@@ -107,9 +122,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     password: string | null;
   }) => {
     try {
+    
       setError(null);
       setLoading(true);
       const res = await api.post("/auth/login", { email, password });
+      // console.log(res)
       setLoading(false);
       setUser(res.data);
       // console.log("Data", res.data);
@@ -214,6 +231,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Otp validation error:", error);
       const err = error as AxiosError<{ message: string }>;
       toast.error(err.response?.data?.message || "Otp verification failed");
+      setLoading(false);
+      return null;
+    }
+  };
+
+  // Reset password functions
+  const forgotPassword = async (email: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await api.post("/auth/forgot-password", { email });
+      if (res.data?.success) {
+        toast.success("Password reset OTP sent to your email!");
+      } else {
+        toast.error(res.data?.message || "Failed to send reset OTP");
+      }
+      setLoading(false);
+      return res.data;
+    } catch (error) {
+      console.log("Forgot password error:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to send reset OTP");
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const verifyResetOtp = async (email: string, otp: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await api.post("/auth/verify-reset-otp", { email, otp });
+      if (res.data?.success) {
+        toast.success("OTP verified successfully!");
+      } else {
+        toast.error(res.data?.message || "Invalid OTP");
+      }
+      setLoading(false);
+      return res.data;
+    } catch (error) {
+      console.log("Verify reset OTP error:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "OTP verification failed");
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const resetPassword = async (resetToken: string, newPassword: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await api.post("/auth/reset-password", { resetToken, newPassword });
+      if (res.data?.success) {
+        toast.success("Password reset successful!");
+      } else {
+        toast.error(res.data?.message || "Failed to reset password");
+      }
+      setLoading(false);
+      return res.data;
+    } catch (error) {
+      console.log("Reset password error:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Failed to reset password");
       setLoading(false);
       return null;
     }
@@ -362,6 +443,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         getUserPayments,
         userPayments,
         switchPlan,
+        forgotPassword,
+        verifyResetOtp,
+        resetPassword,
       }}
     >
       {children}

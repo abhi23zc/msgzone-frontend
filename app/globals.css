@@ -5,6 +5,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.EmojiPickerReact {
+  font-size: 14px !important;
+}
 
 html,
 body {

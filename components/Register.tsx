@@ -136,14 +136,14 @@ function RegisterPage() {
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
-            <div className="flex items-center w-full px-2">
+            {/* <div className="flex items-center w-full px-2">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="mx-4 text-gray-700 font-medium">Or</span>
               <div className="flex-grow border-t border-gray-200"></div>
-            </div>
+            </div> */}
           </Form>
 
-          <SocialIcons />
+          {/* <SocialIcons /> */}
         </div>
 
         <div className="flex justify-center items-center bg-gray-100 w-full py-3 gap-3">
