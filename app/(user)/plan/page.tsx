@@ -1,4 +1,5 @@
 "use client";
+import QRCode from "react-qr-code";
 import React, { useEffect, useState } from "react";
 import {
   Wifi,
@@ -266,25 +267,25 @@ const PricingPlans = () => {
   };
 
   const handleManualPaymentClick = (plan: Plan) => {
+    console.log(plan)
     setSelectedPlanForManual(plan);
     setManualPaymentModalOpen(true);
   };
 
-  const handleManualPaymentSubmit = async (plan:any) => {
+  const handleManualPaymentSubmit = async (plan: any) => {
     if (!plan) {
       setSelectedPlanForManual(plan);
       toast.error("Please select plan");
       return;
     }
-
-
-
+    
+    console.log(plan)
     setIsSubmittingManual(true);
     // await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
       const formData = new FormData();
-      formData.append("planId", plan._id);
+      formData.append("planId", selectedPlanForManual?._id);
       formData.append("utrNumber", utrNumber || "0000000");
       if (screenshotFile) formData.append("screenshot", screenshotFile);
 
@@ -1005,130 +1006,152 @@ const PricingPlans = () => {
           </div>
         )}
 
+
         {/* Payment Modal  */}
-        <Dialog
-          open={manualPaymentModalOpen}
-          onOpenChange={setManualPaymentModalOpen}
-        >
-          <DialogContent className="max-w-md p-6 rounded-lg max-h-[90vh] overflow-y-auto scrollbar-hide top-[50%] -translate-y-1/2">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">
-                Manual Payment Submission
-              </DialogTitle>
-              <DialogDescription>
-                Upload your payment screenshot and enter UTR number for
-                verification
-              </DialogDescription>
-            </DialogHeader>
+         <Dialog
+      open={manualPaymentModalOpen}
+      onOpenChange={setManualPaymentModalOpen}
+    >
+      <DialogContent className="max-w-md p-6 rounded-lg max-h-[90vh] overflow-y-auto scrollbar-hide top-[50%] -translate-y-1/2">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">
+            Manual Payment Submission
+          </DialogTitle>
+          <DialogDescription>
+            Upload your payment screenshot and enter UTR number for
+            verification
+          </DialogDescription>
+        </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              <div>
-                <Label htmlFor="plan-name">Selected Plan</Label>
-                <Input
-                  id="plan-name"
-                  value={selectedPlanForManual?.name || ""}
-                  disabled
-                  className="mt-1 font-medium"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Amount:{" "}
-                  {selectedPlanForManual
-                    ? formatPrice(selectedPlanForManual.price)
-                    : ""}
-                </p>
-              </div>
+        <div className="space-y-6 py-4">
+          {/* Plan details */}
+          <div>
+            <Label htmlFor="plan-name">Selected Plan</Label>
+            <Input
+              id="plan-name"
+              value={selectedPlanForManual?.name || ""}
+              disabled
+              className="mt-1 font-medium"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Amount:{" "}
+              {selectedPlanForManual
+                ? `₹${selectedPlanForManual.price}`
+                : ""}
+            </p>
+          </div>
 
-              <div>
-                <Label htmlFor="utr-number">UTR Number*</Label>
-                <Input
-                  id="utr-number"
-                  placeholder="Enter UTR/Transaction reference number"
-                  value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Unique transaction reference number from your bank
-                </p>
-              </div>
+          {/* QR CODE SECTION */}
+          <div className="text-center p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+            <h3 className="text-lg font-medium text-gray-800 mb-2">
+              Scan QR to Pay
+            </h3>
+            <div className="flex justify-center">
+              <QRCode
+                value={`upi://pay?pa=abhishekssingh0000-1@okicici&pn=Abhishek&am=${
+                  selectedPlanForManual?.price || 0
+                }&cu=INR`}
+                size={180}
+                className="mx-auto"
+              />
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              UPI ID: <span className="font-medium">abhishekssingh0000-1@okicici</span>
+            </p>
+            <p className="text-xs text-gray-400">Scan using any UPI app</p>
+          </div>
 
-              <div>
-                <Label htmlFor="screenshot">Payment Screenshot*</Label>
-                <div className="mt-1 flex items-center gap-4">
-                  <Label
-                    htmlFor="screenshot-upload"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG (MAX. 5MB)
-                      </p>
-                    </div>
-                    <Input
-                      id="screenshot-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                  </Label>
+          {/* UTR input */}
+          <div>
+            <Label htmlFor="utr-number">UTR Number*</Label>
+            <Input
+              id="utr-number"
+              placeholder="Enter UTR/Transaction reference number"
+              value={utrNumber}
+              onChange={(e) => setUtrNumber(e.target.value)}
+              className="mt-1"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Unique transaction reference number from your bank
+            </p>
+          </div>
+
+          {/* Screenshot Upload */}
+          <div>
+            <Label htmlFor="screenshot">Payment Screenshot*</Label>
+            <div className="mt-1 flex items-center gap-4">
+              <Label
+                htmlFor="screenshot-upload"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
                 </div>
-                {screenshotFile && (
-                  <div className="mt-2 flex items-center text-sm text-gray-600">
-                    <FileText className="flex-shrink-0 h-4 w-4 mr-2" />
-                    <span>{screenshotFile.name}</span>
-                    <span className="ml-2 text-gray-500">
-                      {(screenshotFile.size / 1024 / 1024).toFixed(2)}MB
-                    </span>
-                  </div>
-                )}
+                <Input
+                  id="screenshot-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </Label>
+            </div>
+            {screenshotFile && (
+              <div className="mt-2 flex items-center text-sm text-gray-600">
+                <FileText className="flex-shrink-0 h-4 w-4 mr-2" />
+                <span>{screenshotFile.name}</span>
+                <span className="ml-2 text-gray-500">
+                  {(screenshotFile.size / 1024 / 1024).toFixed(2)}MB
+                </span>
               </div>
+            )}
+          </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setManualPaymentModalOpen(false)}
-                  disabled={isSubmittingManual}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleManualPaymentSubmit}
-                  disabled={isSubmittingManual || !utrNumber || !screenshotFile}
-                >
-                  {isSubmittingManual ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit for Approval"
-                  )}
-                </Button>
+          {/* Submit Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setManualPaymentModalOpen(false)}
+              disabled={isSubmittingManual}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleManualPaymentSubmit}
+              disabled={isSubmittingManual || !utrNumber || !screenshotFile}
+            >
+              {isSubmittingManual ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit for Approval"
+              )}
+            </Button>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-yellow-400" />
               </div>
-
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertCircle className="h-5 w-5 text-yellow-400" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      Your subscription will be activated after manual
-                      verification. This process may take up to 24 hours during
-                      business days.
-                    </p>
-                  </div>
-                </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  Your subscription will be activated after manual verification.
+                  This process may take up to 24 hours during business days.
+                </p>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
       </div>
     </div>
   );
