@@ -285,7 +285,7 @@ const PricingPlans = () => {
 
     try {
       const formData = new FormData();
-      formData.append("planId", selectedPlanForManual?._id);
+      formData.append("planId", selectedPlanForManual?._id || '');
       formData.append("utrNumber", utrNumber || "0000000");
       if (screenshotFile) formData.append("screenshot", screenshotFile);
 
