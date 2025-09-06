@@ -106,13 +106,21 @@ const filteredMessages = reports?.results || [];
     setCurrentPage(1); 
   };
 
+  // Export all messages to CSV without filters
+  const handleExportCSV = () => {
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/export/csv`, '_blank');
+  };
+
   return (
     <div className="w-full min-h-[85vh] bg-gradient-to-br from-gray-50 via-white to-gray-100 p-4 md:p-6 lg:p-8 space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Message Reports</h1>
-        <Button className="flex items-center gap-2 w-full sm:w-auto">
+        <Button 
+          className="flex items-center gap-2 w-full sm:w-auto"
+          onClick={handleExportCSV}
+        >
           <Calendar className="w-4 h-4" />
-          Export Report
+          Export CSV
         </Button>
       </div>
 

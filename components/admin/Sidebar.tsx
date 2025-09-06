@@ -146,6 +146,7 @@ import {
   LogoutOutlined,
   MessageOutlined,
   MoneyCollectOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Layout, Menu, Avatar, Typography, Space } from "antd";
@@ -176,11 +177,9 @@ const items: MenuItem[] = [
   getItem("Dashboard", "1", <PieChartOutlined />),
   getItem("User Management", "2", <UserOutlined />),
   getItem("Message Report", "3", <MessageOutlined />),
-  // getItem("Templates", "4", <BookOutlined />),
   getItem("Plans", "5", <BulbOutlined />),
   getItem("Payments", "6", <MoneyCollectOutlined />),
-  getItem("Help", "7", <ToolOutlined />),
-  getItem("Logout", "8", <LogoutOutlined />),
+  getItem("Settings", "7", <SettingOutlined />),
   getItem("", "9", <ChevronsLeft />),
 ];
 const Sidebar: React.FC = () => {
@@ -273,6 +272,7 @@ const Sidebar: React.FC = () => {
             if (key === "3") router.push("/admin/reports");
             if (key === "5") router.push("/admin/plan");
             if (key === "6") router.push("/admin/payment");
+            if (key === "7") router.push("/admin/settings");
             if (key === "8") {
               (async function logout() {
                 await api

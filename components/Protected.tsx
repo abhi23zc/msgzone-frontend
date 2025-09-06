@@ -18,6 +18,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
+      console.log("Authentication Error: ", "Not logged in");
     }
   }, [loading, user, router]);
 

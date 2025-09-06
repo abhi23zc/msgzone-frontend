@@ -1,12 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { DatePicker, Select, Input, Button, Table, Tag } from "antd";
-import { FilterFilled } from "@ant-design/icons";
+import { FilterFilled, DownloadOutlined } from "@ant-design/icons";
 import { useWhatsapp } from "@/context/WhatsappContext";
-import { useAuth } from "@/context/AuthContext";
+
 import toast from "react-hot-toast";
-import ProtectedRoute from "@/components/Protected";
 import type { TablePaginationConfig } from "antd/es/table";
+import { useAuth } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/Protected";
 
 interface Message {
   sendFrom: string;
@@ -32,7 +33,7 @@ const columns = [
   {
     title: "S.No",
     key: "sno",
-    render: (_:any, __:any  , index:number) => (index+1),
+    render: (_: any, __: any, index: number) => index + 1,
   },
   {
     title: "Sender",
@@ -110,18 +111,17 @@ function MessageReports() {
     search: "",
   });
 
-const fetchMessages = async (
-  page: number,
-  limit: number,
-  dateFilters?: DateRange
-) => {
-  try {
-    await getAllMessages(limit, page, dateFilters, filters); // ✅ now filters are used
-  } catch (error) {
-    toast.error("Error while fetching data");
-  }
-};
-
+  const fetchMessages = async (
+    page: number,
+    limit: number,
+    dateFilters?: DateRange
+  ) => {
+    try {
+      await getAllMessages(limit, page, dateFilters, filters);
+    } catch (error) {
+      toast.error("Error while fetching data");
+    }
+  };
 
   const handleTableChange = (pagination: TablePaginationConfig) => {
     if (pagination.current && pagination.pageSize) {
@@ -146,6 +146,13 @@ const fetchMessages = async (
     fetchMessages(1, pageSize, dateRange);
     setCurrentPage(1);
   };
+
+  // Export all messages to CSV without filters
+  const handleExportCSV = () => {
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wp/export/csv`, '_blank');
+  };
+
+
 
   useEffect(() => {
     fetchMessages(currentPage, pageSize);
@@ -185,18 +192,30 @@ const fetchMessages = async (
     } else {
       setMsgData([]);
     }
-  }, [allMessages]);
+  }, [data, filters]);
 
   return (
     <section className="p-10 w-full">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-semibold mb-6">Filter Reports</h1>
           <p className="text-gray-600 mb-6">
             Filter your message reports by date, status, and more
           </p>
         </div>
-      
+        
+        {/* Fixed: Added export buttons in proper location */}
+        <div className="flex gap-2">
+          <Button 
+            type="default" 
+            onClick={handleExportCSV}
+            icon={<DownloadOutlined />}
+            className="flex items-center"
+          >
+            Export CSV
+          </Button>
+        
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">

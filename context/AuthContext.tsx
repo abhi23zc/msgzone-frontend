@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 interface AuthContextType {
   user: any;
+  setUser : any;
   loading: boolean;
   login: ({
     email,
@@ -56,7 +57,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  setUser: async ()=>{},
   loading: false,
+
   login: async () => {},
   logout: async () => {},
   register: async () => {},
@@ -100,10 +103,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkUser = async () => {
     try {
+      console.log("Checking user");
       setError(null);
       setLoading(true);
       const res = await api.get("/auth/profile");
       setLoading(false);
+      console.log("Data", res.data);
       setUser(res.data);
       // console.log("Data", res.data);
     } catch (error) {
@@ -424,6 +429,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
         login,
         logout,

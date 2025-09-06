@@ -202,7 +202,6 @@ const getStatusBadge = (status: string) => {
             planName: payment?.plan?.name,
             amount: payment?.plan?.price,
             currency: "INR",
-            paymentMethod: payment?.paymentMode,
             razorpay_order_id:
               payment?.paymentMode === "razorpay"
                 ? payment?.razorpay_order_id
@@ -217,6 +216,8 @@ const getStatusBadge = (status: string) => {
                 : null,
             utrNumber:
               payment?.paymentMode === "manual" ? payment?.utrNumber : null,
+            paymentMethod: payment?.paymentMethod || 'qr',
+            bankDetails: payment?.bankDetails || null,
             transactionId:
               payment?.paymentMode === "manual"
                 ? payment?.utrNumber
@@ -230,7 +231,8 @@ const getStatusBadge = (status: string) => {
             messageLimit: payment?.plan?.messageLimit || "Unlimited", // Default values since not in API
           })
         );
-        console.log(formattedPayments);
+        console.log("Formatted payments:", formattedPayments);
+        console.log("Raw payment data sample:", res?.data?.data?.payments?.[0]);
         setStats(res?.data?.data?.stats)
         setPayments(formattedPayments);
       }
@@ -417,7 +419,7 @@ const getStatusBadge = (status: string) => {
                       <div>
                         <div className="font-medium">₹{payment?.amount}</div>
                         <div className="text-sm text-muted-foreground">
-                          {payment?.paymentMethod}
+                          {payment?.paymentMethod === "bank" ? "Bank Transfer" : "QR Code & UPI"}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {payment?.transactionId}
@@ -581,7 +583,7 @@ const getStatusBadge = (status: string) => {
                               Method
                             </p>
                             <p className="text-sm">
-                              {selectedPayment.paymentMethod}
+                              {selectedPayment.paymentMethod === "bank" ? "Bank Transfer (NEFT/RTGS)" : "QR Code & UPI"}
                             </p>
                           </div>
                           <div>
@@ -607,6 +609,58 @@ const getStatusBadge = (status: string) => {
                           </p>
                           {getStatusBadge(selectedPayment.status)}
                         </div>
+                        
+                        {/* Bank Details Section - Only show for bank transfers */}
+                        {selectedPayment.paymentMethod === "bank" && 
+                         selectedPayment.bankDetails && (
+                          <div className="pt-4 border-t">
+                            <p className="text-sm font-medium text-muted-foreground mb-3">
+                              Bank Transfer Details
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Account Holder
+                                </p>
+                                <p className="text-sm">
+                                  {selectedPayment.bankDetails.accountHolderName}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Bank Name
+                                </p>
+                                <p className="text-sm">
+                                  {selectedPayment.bankDetails.bankName}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Account Number
+                                </p>
+                                <p className="text-sm font-mono">
+                                  {selectedPayment.bankDetails.accountNumber}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  IFSC Code
+                                </p>
+                                <p className="text-sm font-mono">
+                                  {selectedPayment.bankDetails.ifscCode}
+                                </p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Branch Name
+                                </p>
+                                <p className="text-sm">
+                                  {selectedPayment.bankDetails.branchName}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

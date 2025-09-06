@@ -69,6 +69,14 @@ interface Payment {
   razorpay_signature?: string;
   utrNumber?: string;
   screenshotUrl?: string;
+  paymentMethod?: "qr" | "bank";
+  bankDetails?: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    branchName: string;
+  };
   status: "pending" | "approved" | "rejected";
   user: string;
   plan: Plan;
@@ -100,6 +108,12 @@ const PricingPlans = () => {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [utrNumber, setUtrNumber] = useState("");
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  
+  // Payment method selection
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'qr' | 'bank'>('qr');
+
+  // Payment settings from database
+  const [paymentSettings, setPaymentSettings] = useState<any>(null);
 
   // Data state
   const [currentSubscriptions, setCurrentSubscriptions] = useState<
@@ -287,7 +301,16 @@ const PricingPlans = () => {
       const formData = new FormData();
       formData.append("planId", selectedPlanForManual?._id || '');
       formData.append("utrNumber", utrNumber || "0000000");
+      formData.append("paymentMethod", selectedPaymentMethod);
+      
       if (screenshotFile) formData.append("screenshot", screenshotFile);
+
+      // Debug: Log the data being sent
+      console.log("Submitting payment with:", {
+        planId: selectedPlanForManual?._id,
+        utrNumber: utrNumber || "0000000",
+        paymentMethod: selectedPaymentMethod
+      });
 
       const res = await api.post("/payment/manual-payment", formData);
       // const result = await createManualPayment(formData);
@@ -297,6 +320,7 @@ const PricingPlans = () => {
         setManualPaymentModalOpen(false);
         setScreenshotFile(null);
         setUtrNumber("");
+        setSelectedPaymentMethod('qr');
         fetchPayments();
       } else {
         toast.error(res?.data?.message || "Failed to submit payment");
@@ -326,9 +350,30 @@ const PricingPlans = () => {
 
   const fetchPayments = async () => {
     const res = await getUserPayments();
-    console.log(userPayments);
+    console.log("User payments response:", res);
+    console.log("User payments from context:", userPayments);
     if (res?.payments) {
+      console.log("Setting payment history:", res.payments);
       setPaymentHistory(res.payments);
+    }
+  };
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const res = await api.get("/payment-settings");
+      if (res?.data?.success) {
+        console.log("Payment settings fetched:", res.data.data);
+        setPaymentSettings(res.data.data);
+        
+        // Set default payment method based on what's enabled
+        if (res.data.data.qrUpiEnabled) {
+          setSelectedPaymentMethod('qr');
+        } else if (res.data.data.bankAccountEnabled) {
+          setSelectedPaymentMethod('bank');
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching payment settings:", error);
     }
   };
 
@@ -349,6 +394,7 @@ const PricingPlans = () => {
 
   useEffect(() => {
     fetchallPlans();
+    fetchPaymentSettings();
   }, []);
 
   useEffect(() => {
@@ -510,7 +556,10 @@ const PricingPlans = () => {
   };
 
   const PaymentHistoryCard = ({ payment }: { payment: any }) => {
-    const isManualPayment = payment.mode === "manual";
+    const isManualPayment = payment.paymentMode === "manual";
+    
+    // Debug: Log payment data to see what fields are available
+    console.log("Payment data:", payment);
 
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
@@ -587,9 +636,26 @@ const PricingPlans = () => {
                 </p>
               </div>
               <div>
-                <span className="text-gray-500">Payment Mode:</span>
-                <p className="text-gray-800">Manual Transfer</p>
+                <span className="text-gray-500">Payment Method:</span>
+                <p className="text-gray-800">
+                  {payment.paymentMethod === 'bank' 
+                    ? 'Bank Transfer (NEFT/RTGS)' 
+                    : 'QR Code & UPI'}
+                </p>
               </div>
+              {/* Bank Details - Only show for bank transfers */}
+              {payment.paymentMethod === 'bank' && payment.bankDetails && (
+                <div className="col-span-2">
+                  <span className="text-gray-500">Bank Details:</span>
+                  <div className="mt-1 text-sm text-gray-800">
+                    <p><span className="font-medium">Account:</span> {payment.bankDetails.accountHolderName}</p>
+                    <p><span className="font-medium">Bank:</span> {payment.bankDetails.bankName}</p>
+                    <p><span className="font-medium">Account No:</span> {payment.bankDetails.accountNumber}</p>
+                    <p><span className="font-medium">IFSC:</span> {payment.bankDetails.ifscCode}</p>
+                  </div>
+                </div>
+              )}
+              
               {payment.screenshot && (
                 <div className="col-span-2">
                   <span className="text-gray-500">Screenshot:</span>
@@ -1012,14 +1078,13 @@ const PricingPlans = () => {
       open={manualPaymentModalOpen}
       onOpenChange={setManualPaymentModalOpen}
     >
-      <DialogContent className="max-w-md p-6 rounded-lg max-h-[90vh] overflow-y-auto scrollbar-hide top-[50%] -translate-y-1/2">
+      <DialogContent className="max-w-2xl p-6 rounded-lg max-h-[90vh] overflow-y-auto scrollbar-hide top-[50%] -translate-y-1/2">
         <DialogHeader>
           <DialogTitle className="text-2xl">
             Manual Payment Submission
           </DialogTitle>
           <DialogDescription>
-            Upload your payment screenshot and enter UTR number for
-            verification
+            Choose your payment method and complete the transaction
           </DialogDescription>
         </DialogHeader>
 
@@ -1041,25 +1106,170 @@ const PricingPlans = () => {
             </p>
           </div>
 
-          {/* QR CODE SECTION */}
-          <div className="text-center p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
-            <h3 className="text-lg font-medium text-gray-800 mb-2">
-              Scan QR to Pay
-            </h3>
-            <div className="flex justify-center">
-              <QRCode
-                value={`upi://pay?pa=abhishekssingh0000-1@okicici&pn=Abhishek&am=${
-                  selectedPlanForManual?.price || 0
-                }&cu=INR`}
-                size={180}
-                className="mx-auto"
-              />
+          {/* Payment Method Selection */}
+          <div className="space-y-4">
+            <Label className="text-base font-medium text-gray-900">Choose Payment Method</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {/* QR Code & UPI Option - Only show if enabled and not bank transfer selected */}
+              {paymentSettings?.qrUpiEnabled && selectedPaymentMethod !== 'bank' && (
+                <div 
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedPaymentMethod === 'qr' 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                  onClick={() => setSelectedPaymentMethod('qr')}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      selectedPaymentMethod === 'qr' ? 'bg-green-500' : 'bg-gray-200'
+                    }`}>
+                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">QR Code & UPI</h4>
+                      <p className="text-sm text-gray-500">Instant payment</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bank Account Option - Only show if enabled and not QR selected */}
+              {paymentSettings?.bankAccountEnabled && selectedPaymentMethod !== 'qr' && (
+                <div 
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedPaymentMethod === 'bank' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => setSelectedPaymentMethod('bank')}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      selectedPaymentMethod === 'bank' ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}>
+                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Bank Transfer</h4>
+                      <p className="text-sm text-gray-500">NEFT/RTGS</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-500 mt-2">
-              UPI ID: <span className="font-medium">abhishekssingh0000-1@okicici</span>
-            </p>
-            <p className="text-xs text-gray-400">Scan using any UPI app</p>
           </div>
+
+          {/* QR CODE SECTION */}
+          {selectedPaymentMethod === 'qr' && (
+            <div className="text-center p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium text-gray-800">
+                  Scan QR to Pay
+                </h3>
+                {paymentSettings?.bankAccountEnabled && (
+                  <button
+                    onClick={() => setSelectedPaymentMethod('bank')}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Use Bank Transfer instead
+                  </button>
+                )}
+              </div>
+              <div className="flex justify-center">
+                {paymentSettings?.qrCodeImage ? (
+                  <img 
+                    src={paymentSettings.qrCodeImage} 
+                    alt="Payment QR Code" 
+                    className="h-48 w-48 object-contain"
+                  />
+                ) : (
+                  <QRCode
+                    value={`upi://pay?pa=${paymentSettings?.upiId || 'abhishekssingh0000-1@okicici'}&pn=${paymentSettings?.upiName || 'Abhishek'}&am=${
+                      selectedPlanForManual?.price || 0
+                    }&cu=INR`}
+                    size={180}
+                    className="mx-auto"
+                  />
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                UPI ID: <span className="font-medium">{paymentSettings?.upiId || 'abhishekssingh0000-1@okicici'}</span>
+              </p>
+              <p className="text-xs text-gray-400">Scan using any UPI app</p>
+            </div>
+          )}
+
+          {/* Bank Account Details */}
+          {selectedPaymentMethod === 'bank' && (
+            <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-800">Bank Account Details</h3>
+                {paymentSettings?.qrUpiEnabled && (
+                  <button
+                    onClick={() => setSelectedPaymentMethod('qr')}
+                    className="text-sm text-green-600 hover:text-green-800 underline"
+                  >
+                    Use QR Code & UPI instead
+                  </button>
+                )}
+              </div>
+              
+              {paymentSettings?.bankDetails ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-blue-900 mb-3">Bank Account Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-blue-800">Account Holder:</span>
+                        <p className="text-blue-700">{paymentSettings.bankDetails.accountHolderName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-800">Bank Name:</span>
+                        <p className="text-blue-700">{paymentSettings.bankDetails.bankName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-800">Account Number:</span>
+                        <p className="text-blue-700 font-mono">{paymentSettings.bankDetails.accountNumber}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-blue-800">IFSC Code:</span>
+                        <p className="text-blue-700 font-mono">{paymentSettings.bankDetails.ifscCode}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className="font-medium text-blue-800">Branch Name:</span>
+                        <p className="text-blue-700">{paymentSettings.bankDetails.branchName}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-900">Payment Instructions</h4>
+                        <ul className="text-sm text-amber-700 mt-1 space-y-1">
+                          <li>• Transfer the exact amount: ₹{selectedPlanForManual?.price}</li>
+                          <li>• Use the bank details above for NEFT/RTGS</li>
+                          <li>• Keep your UTR number for reference</li>
+                          <li>• Upload payment screenshot as proof</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Bank account details not configured</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* UTR input */}
           <div>
@@ -1122,7 +1332,14 @@ const PricingPlans = () => {
             </Button>
             <Button
               onClick={handleManualPaymentSubmit}
-              disabled={isSubmittingManual || !utrNumber || !screenshotFile}
+              disabled={
+                isSubmittingManual || 
+                !utrNumber || 
+                !screenshotFile ||
+                !paymentSettings ||
+                (selectedPaymentMethod === 'bank' && !paymentSettings?.bankAccountEnabled) ||
+                (selectedPaymentMethod === 'qr' && !paymentSettings?.qrUpiEnabled)
+              }
             >
               {isSubmittingManual ? (
                 <>
