@@ -144,14 +144,7 @@ function DashboardPage() {
                 Real-time metrics and business intelligence
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-200 hover:bg-gray-50">
-                Download Report
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                View Details
-              </button>
-            </div>
+          
           </div>
         </header>
 

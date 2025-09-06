@@ -85,6 +85,7 @@ interface Payment {
 
 const PricingPlans = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [loadingPlans, setLoadingPlans] = useState<Set<string>>(new Set());
   const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"current" | "history" | "plans">(
     "current"
@@ -295,11 +296,12 @@ const PricingPlans = () => {
     
     console.log(plan)
     setIsSubmittingManual(true);
+    setLoadingPlans(prev => new Set(prev).add(plan._id));
     // await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
       const formData = new FormData();
-      formData.append("planId", selectedPlanForManual?._id || '');
+      formData.append("planId", plan?._id || '');
       formData.append("utrNumber", utrNumber || "0000000");
       formData.append("paymentMethod", selectedPaymentMethod);
       
@@ -307,7 +309,7 @@ const PricingPlans = () => {
 
       // Debug: Log the data being sent
       console.log("Submitting payment with:", {
-        planId: selectedPlanForManual?._id,
+        planId: plan?._id,
         utrNumber: utrNumber || "0000000",
         paymentMethod: selectedPaymentMethod
       });
@@ -321,7 +323,11 @@ const PricingPlans = () => {
         setScreenshotFile(null);
         setUtrNumber("");
         setSelectedPaymentMethod('qr');
-        fetchPayments();
+        
+        // Refresh the page after successful payment
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         toast.error(res?.data?.message || "Failed to submit payment");
       }
@@ -330,6 +336,11 @@ const PricingPlans = () => {
       toast.error("Failed to submit payment");
     } finally {
       setIsSubmittingManual(false);
+      setLoadingPlans(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(plan._id);
+        return newSet;
+      });
     }
   };
 
@@ -584,109 +595,179 @@ const PricingPlans = () => {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800">
-                {payment.plan.name}
+                {payment.plan?.name || "Unknown Plan"}
               </h4>
               <p className="text-sm text-gray-600">
                 {formatDate(payment.date)}
               </p>
-              {isManualPayment && (
-                <div className="mt-1">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      payment.status === "approved"
+              <div className="mt-1">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    isManualPayment
+                      ? payment.status === "approved"
                         ? "bg-green-100 text-green-800"
                         : payment.status === "rejected"
                         ? "bg-red-100 text-red-800"
                         : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {payment.status === "approved" ? (
+                      : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {isManualPayment ? (
+                    <>
+                      {payment.status === "approved" ? (
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                      ) : payment.status === "rejected" ? (
+                        <XCircle className="w-3 h-3 mr-1" />
+                      ) : (
+                        <Clock className="w-3 h-3 mr-1" />
+                      )}
+                      {payment.status}
+                    </>
+                  ) : (
+                    <>
                       <CheckCircle className="w-3 h-3 mr-1" />
-                    ) : payment.status === "rejected" ? (
-                      <XCircle className="w-3 h-3 mr-1" />
-                    ) : (
-                      <Clock className="w-3 h-3 mr-1" />
-                    )}
-                    {payment.status}
-                  </span>
-                </div>
-              )}
+                      Success
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
           <div className="text-right">
             <p className="text-xl font-bold text-gray-800">
-              {formatPrice(payment.plan.price)}
+              {formatPrice(payment.plan?.price || 0)}
             </p>
-            {!isManualPayment && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Success
-              </span>
-            )}
+            <p className="text-sm text-gray-500">
+              {payment.paymentMode === "razorpay" ? "Online Payment" : "Manual Payment"}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {isManualPayment ? (
-            <>
-              <div>
-                <span className="text-gray-500">UTR Number:</span>
-                <p className="font-mono text-gray-800 truncate">
-                  {payment.utrNumber || "N/A"}
-                </p>
-              </div>
+        <div className="space-y-4">
+          {/* Payment Mode and Method */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Payment Mode:</span>
+              <p className="text-gray-800 font-medium">
+                {payment.paymentMode === "razorpay" ? "Online (Razorpay)" : "Manual"}
+              </p>
+            </div>
+            {isManualPayment && (
               <div>
                 <span className="text-gray-500">Payment Method:</span>
-                <p className="text-gray-800">
+                <p className="text-gray-800 font-medium">
                   {payment.paymentMethod === 'bank' 
                     ? 'Bank Transfer (NEFT/RTGS)' 
                     : 'QR Code & UPI'}
                 </p>
               </div>
+            )}
+          </div>
+
+          {/* Razorpay Details */}
+          {!isManualPayment && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {payment.razorpay_order_id && (
+                <div>
+                  <span className="text-gray-500">Order ID:</span>
+                  <p className="font-mono text-gray-800 text-xs break-all">
+                    {payment.razorpay_order_id}
+                  </p>
+                </div>
+              )}
+              {payment.razorpay_payment_id && (
+                <div>
+                  <span className="text-gray-500">Payment ID:</span>
+                  <p className="font-mono text-gray-800 text-xs break-all">
+                    {payment.razorpay_payment_id}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Manual Payment Details */}
+          {isManualPayment && (
+            <div className="space-y-4">
+              {payment.utrNumber && (
+                <div>
+                  <span className="text-gray-500">UTR Number:</span>
+                  <p className="font-mono text-gray-800 font-medium">
+                    {payment.utrNumber}
+                  </p>
+                </div>
+              )}
+
               {/* Bank Details - Only show for bank transfers */}
               {payment.paymentMethod === 'bank' && payment.bankDetails && (
-                <div className="col-span-2">
-                  <span className="text-gray-500">Bank Details:</span>
-                  <div className="mt-1 text-sm text-gray-800">
-                    <p><span className="font-medium">Account:</span> {payment.bankDetails.accountHolderName}</p>
-                    <p><span className="font-medium">Bank:</span> {payment.bankDetails.bankName}</p>
-                    <p><span className="font-medium">Account No:</span> {payment.bankDetails.accountNumber}</p>
-                    <p><span className="font-medium">IFSC:</span> {payment.bankDetails.ifscCode}</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-blue-900 mb-2">Bank Transfer Details</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-blue-700 font-medium">Account Holder:</span>
+                      <p className="text-blue-800">{payment.bankDetails.accountHolderName}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Bank:</span>
+                      <p className="text-blue-800">{payment.bankDetails.bankName}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Account No:</span>
+                      <p className="text-blue-800 font-mono">{payment.bankDetails.accountNumber}</p>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">IFSC:</span>
+                      <p className="text-blue-800 font-mono">{payment.bankDetails.ifscCode}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-blue-700 font-medium">Branch:</span>
+                      <p className="text-blue-800">{payment.bankDetails.branchName}</p>
+                    </div>
                   </div>
                 </div>
               )}
               
-              {payment.screenshot && (
-                <div className="col-span-2">
-                  <span className="text-gray-500">Screenshot:</span>
-                  <a
-                    href={payment.screenshot}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center"
-                  >
-                    <FileText className="w-4 h-4 mr-1" />
-                    View Proof
-                  </a>
+              {payment.screenshotUrl && (
+                <div>
+                  <span className="text-gray-500">Payment Proof:</span>
+                  <div className="mt-1">
+                    <a
+                      href={payment.screenshotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      View Screenshot
+                    </a>
+                  </div>
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              <div>
-                <span className="text-gray-500">Order ID:</span>
-                <p className="font-mono text-gray-800 truncate">
-                  {payment.orderId}
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-500">Payment ID:</span>
-                <p className="font-mono text-gray-800 truncate">
-                  {payment.paymentId}
-                </p>
-              </div>
-            </>
+            </div>
           )}
+
+          {/* Plan Details */}
+          <div className="border-t border-gray-100 pt-4">
+            <h5 className="text-sm font-medium text-gray-700 mb-2">Plan Details</h5>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Plan Name:</span>
+                <p className="text-gray-800 font-medium">{payment.plan?.name || "N/A"}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Duration:</span>
+                <p className="text-gray-800">{payment.plan?.durationDays ? formatDuration(payment.plan.durationDays) : "N/A"}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Messages:</span>
+                <p className="text-gray-800">
+                  {payment.plan?.type === "unlimited" 
+                    ? "Unlimited" 
+                    : payment.plan?.messageLimit ? payment.plan.messageLimit.toLocaleString() : "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -990,19 +1071,28 @@ const PricingPlans = () => {
                         onClick={() => {
                           if (plan.name.includes("Free Tier")) {
                             setSelectedPlanForManual(plan);
-                            setSelectedPlan(plan._id);
                             handleManualPaymentSubmit(plan);
                           } else handleManualPaymentClick(plan);
                         }}
+                        disabled={loadingPlans.has(plan._id)}
                         className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${
-                          selectedPlan === plan._id
-                            ? "bg-green-500 text-white"
+                          loadingPlans.has(plan._id)
+                            ? "bg-green-500 text-white cursor-not-allowed"
                             : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
                         }`}
                       >
                         <div className="flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 mr-2" />
-                          Pay
+                          {loadingPlans.has(plan._id) ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-5 h-5 mr-2" />
+                              Pay
+                            </>
+                          )}
                         </div>
                       </button>
                     </div>
@@ -1331,7 +1421,7 @@ const PricingPlans = () => {
               Cancel
             </Button>
             <Button
-              onClick={handleManualPaymentSubmit}
+              onClick={() => handleManualPaymentSubmit(selectedPlanForManual)}
               disabled={
                 isSubmittingManual || 
                 !utrNumber || 
@@ -1344,7 +1434,7 @@ const PricingPlans = () => {
               {isSubmittingManual ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting...
+                  Processing Payment...
                 </>
               ) : (
                 "Submit for Approval"

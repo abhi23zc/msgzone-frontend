@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,10 @@ import {
   Save,
   MessageCircle,
   CreditCard,
-  Smartphone
+  Smartphone,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
@@ -20,8 +23,20 @@ function Settings() {
   const [activeTab, setActiveTab] = useState('whatsapp');
   const [showDeviceSuccess, setShowDeviceSuccess] = useState(false);
   const [selectedDeviceName, setSelectedDeviceName] = useState('business');
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+
+  // Notification component
+  const showNotification = useCallback((type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  }, []);
+
   const [settings, setSettings] = useState({
     // General Settings
     systemName: 'WhatsApp Bulk Sender',
@@ -64,22 +79,28 @@ function Settings() {
   });
 
 
-  const checkUser = async () => {
+  const checkUser = useCallback(async () => {
     try {
-      console.log("Checking user");
+      setLoading(true);
       const res = await api.get("/auth/profile");
-      console.log("Data", res.data)
       if (res?.data.success) {
-        setUser(res.data)
+        setUser(res.data);
+        // Auto-load devices when user data is available
+        if (res.data.data?.user?.devices) {
+          fetchDevices(res.data);
+        }
       }
     } catch (error) {
-      console.log("Error checking user:", error);
-
+      console.error("Error checking user:", error);
+      showNotification('error', 'Failed to load user data');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [showNotification]);
+
   useEffect(() => {
-    checkUser()
-  }, [])
+    checkUser();
+  }, [checkUser]);
 
   const handleInputChange = (field: string, value: any) => {
     setSettings(prev => ({
@@ -88,8 +109,11 @@ function Settings() {
     }));
   };
 
-  const fetchPaymentSettings = async () => {
+  const fetchPaymentSettings = useCallback(async () => {
+    if (paymentSettingsLoading) return; // Prevent multiple simultaneous requests
+    
     try {
+      setPaymentSettingsLoading(true);
       const res = await api.get("/admin/payment-settings");
       if (res?.data?.success) {
         const paymentSettings = res.data.data;
@@ -108,11 +132,15 @@ function Settings() {
       }
     } catch (error) {
       console.error("Error fetching payment settings:", error);
+      showNotification('error', 'Failed to load payment settings');
+    } finally {
+      setPaymentSettingsLoading(false);
     }
-  };
+  }, [showNotification, paymentSettingsLoading]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
+      setSaving(true);
       const paymentSettingsData = {
         qrUpiEnabled: settings.qrUpiEnabled,
         qrCodeImage: settings.qrCodeUrl,
@@ -132,36 +160,45 @@ function Settings() {
 
       const res = await api.put("/admin/payment-settings", paymentSettingsData);
       if (res?.data?.success) {
-        console.log('Payment settings saved successfully:', res.data);
-        // You can add a toast notification here
+        showNotification('success', 'Payment settings saved successfully!');
       } else {
-        console.error('Failed to save payment settings:', res.data.message);
+        showNotification('error', res.data.message || 'Failed to save payment settings');
       }
     } catch (error) {
       console.error('Error saving payment settings:', error);
+      showNotification('error', 'Failed to save payment settings');
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [settings, showNotification]);
 
-  const fetchDevices = async () => {
-    console.log(user)
-    const deviceData =
-      user?.data?.user?.devices?.map((device: any, idx: any) => ({
-        key: idx,
-        number: device?.number || "N/A",
-        deviceId: device?.deviceId,
-        sent: device?.sent || 0,
-        lastConnected: device?.lastConnected,
-        status: device?.status,
-      })) || [];
+  const fetchDevices = useCallback((userData?: any) => {
+    const userToUse = userData || user;
+    if (!userToUse?.data?.user?.devices) {
+      setDevices([]);
+      return;
+    }
+
+    const deviceData = userToUse.data.user.devices.map((device: any, idx: any) => ({
+      key: idx,
+      number: device?.number || "N/A",
+      deviceId: device?.deviceId,
+      sent: device?.sent || 0,
+      lastConnected: device?.lastConnected,
+      status: device?.status,
+    }));
 
     setDevices(deviceData);
-    setLoading(false);
-  };
+    
+    // Set the currently active device as selected
+    const activeDevice = userToUse.data.user.adminDevice;
+    if (activeDevice) {
+      setSelectedDeviceId(activeDevice);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'whatsapp') {
-      fetchDevices();
-    } else if (activeTab === 'payments') {
+    if (activeTab === 'payments') {
       fetchPaymentSettings();
     }
   }, [activeTab]);
@@ -171,6 +208,29 @@ function Settings() {
     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'bg-purple-500' }
   ];
 
+
+  const handleDeviceSelection = useCallback(async () => {
+    try {
+      setDevicesLoading(true);
+      if (selectedDeviceId) {
+        setSelectedDeviceName(selectedDeviceId);
+        
+        const data = await api.post("/admin/setAdminDevice", { deviceId: selectedDeviceId });
+        if (data?.data?.status) {
+          showNotification('success', `${selectedDeviceId} is now your active device!`);
+        } else {
+          showNotification('error', 'Failed to set active device');
+        }
+      } else {
+        showNotification('error', 'Please select a device first');
+      }
+    } catch (error) {
+      console.error('Error setting device:', error);
+      showNotification('error', 'Failed to set active device');
+    } finally {
+      setDevicesLoading(false);
+    }
+  }, [selectedDeviceId, showNotification]);
 
   const renderWhatsAppSettings = () => (
     <div className="space-y-6">
@@ -263,9 +323,9 @@ function Settings() {
                             name="selectedDevice"
                             value={device.deviceId}
                             id={`device-${device.deviceId}`}
-                            checked={isActiveDevice}
+                            checked={selectedDeviceId === device.deviceId}
                             className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
-                            onChange={() => setSelectedDeviceName(device.deviceId)}
+                            onChange={() => setSelectedDeviceId(device.deviceId)}
                           />
                           <label htmlFor={`device-${device.deviceId}`} className="sr-only">Select {device.deviceId} device</label>
                         </div>
@@ -327,10 +387,10 @@ function Settings() {
                   <span className="text-gray-500">No devices found</span>
                 )}
               </div>
-              {devices.length > 0 && (
+              {devices.length > 0 && selectedDeviceId && (
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-gray-600">Selected Device:</span>
-                  <span className="text-sm font-semibold text-blue-600">{user?.data?.user?.adminDevice}</span>
+                  <span className="text-sm font-semibold text-blue-600">{selectedDeviceId}</span>
                 </div>
               )}
             </div>
@@ -340,24 +400,17 @@ function Settings() {
                   variant="outline"
                   size="sm"
                   className="text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300 transition-colors"
-                  onClick={async () => {
-                    const selectedDevice = document.querySelector('input[name="selectedDevice"]:checked') as HTMLInputElement;
-                    console.log(selectedDevice)
-                    if (selectedDevice) {
-                      const deviceName = selectedDevice.value;
-                      setSelectedDeviceName(deviceName);
-                      setShowDeviceSuccess(true);
-                      // Here you can add logic to set the active device for sending messages
-                      console.log('Active device set to:', user?.data?.user?.adminDevice);
-                      const data = await api.post("/admin/setAdminDevice", { deviceId: deviceName });
-                      console.log(data)
-                      setTimeout(() => {
-                        setShowDeviceSuccess(false);
-                      }, 2000);
-                    }
-                  }}
+                  onClick={handleDeviceSelection}
+                  disabled={devicesLoading}
                 >
-                  Set as Active
+                  {devicesLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Setting...
+                    </>
+                  ) : (
+                    'Set as Active'
+                  )}
                 </Button>
               )}
               <div className="flex items-center space-x-2">
@@ -384,7 +437,17 @@ function Settings() {
         <p className="text-gray-600">Choose your preferred payment collection method for manual payments</p>
       </div>
 
-      {/* QR Code & UPI Payment Method */}
+      {/* Loading State */}
+      {paymentSettingsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+            <span className="text-gray-600">Loading payment settings...</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* QR Code & UPI Payment Method */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <div className="flex items-center justify-between">
@@ -607,11 +670,23 @@ function Settings() {
         <Button 
           onClick={handleSave}
           className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-2"
+          disabled={saving || paymentSettingsLoading}
         >
-          <Save className="h-4 w-4 mr-2" />
-          Save Payment Settings
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Payment Settings
+            </>
+          )}
         </Button>
       </div>
+        </>
+      )}
     </div>
   );
 
@@ -629,15 +704,58 @@ function Settings() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+          <div className={`px-6 py-4 rounded-lg shadow-lg border flex items-center space-x-3 ${
+            notification.type === 'success' 
+              ? 'bg-green-500 text-white border-green-400' 
+              : 'bg-red-500 text-white border-red-400'
+          }`}>
+            <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
+              notification.type === 'success' ? 'bg-green-400' : 'bg-red-400'
+            }`}>
+              {notification.type === 'success' ? (
+                <CheckCircle className="h-4 w-4 text-white" />
+              ) : (
+                <XCircle className="h-4 w-4 text-white" />
+              )}
+            </div>
+            <div>
+              <p className="font-semibold">{notification.message}</p>
+            </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-4 text-white/80 hover:text-white transition-colors"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-600 mt-1">Configure your system preferences and integrations</p>
         </div>
-        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
-          <Save className="h-4 w-4 mr-2" />
-          Save All Settings
+        <Button 
+          onClick={handleSave} 
+          className="bg-green-600 hover:bg-green-700"
+          disabled={saving || paymentSettingsLoading}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save All Settings
+            </>
+          )}
         </Button>
       </div>
 
