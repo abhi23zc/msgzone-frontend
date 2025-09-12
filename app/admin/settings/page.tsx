@@ -43,6 +43,7 @@ function Settings() {
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [logoUploading, setLogoUploading] = useState(false);
   
   // Message Templates State
   const [messageTemplates, setMessageTemplates] = useState({
@@ -264,6 +265,8 @@ MsgZone Team`
       }
 
       try {
+        setLogoUploading(true);
+        
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('logo', file);
@@ -300,6 +303,8 @@ MsgZone Team`
       } catch (error) {
         console.error('Error uploading logo:', error);
         showNotification('error', 'Failed to upload logo');
+      } finally {
+        setLogoUploading(false);
       }
     }
   };
@@ -680,35 +685,45 @@ MsgZone Team`
               <p className="text-sm text-gray-500">Upload your company or system logo (PNG, JPG, SVG - Max 5MB)</p>
             </div>
             
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-              <div className="space-y-4">
-                <div className="mx-auto h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Image className="h-8 w-8 text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-lg font-medium text-gray-900">Upload Logo</p>
-                  <p className="text-sm text-gray-500">Drag and drop or click to browse</p>
-                </div>
-                <div className="flex items-center justify-center space-x-3">
-                  <input
-                    type="file"
-                    id="logoUpload"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    
-                  />
-                  <label htmlFor="logoUpload">
-                    <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose File
-                    </Button>
-                  </label>
-                </div>
-              </div>
+            <div className="flex items-center justify-center">
+              <input
+                type="file"
+                id="logoUpload"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={logoUploading}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                className={`cursor-pointer transition-colors ${
+                  logoUploading 
+                    ? 'border-blue-200 text-blue-600 bg-blue-50 cursor-not-allowed' 
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+                disabled={logoUploading}
+                onClick={() => {
+                  if (!logoUploading) {
+                    document.getElementById('logoUpload')?.click();
+                  }
+                }}
+              >
+                {logoUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Choose File
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* Current Logo Preview */}
-            {(logoPreview || settings.logoUrl) && (
+            {(logoPreview || settings.logoUrl) && !logoUploading && (
               <div className="mt-4">
                 <Label className="text-sm font-medium text-gray-700">Current Logo</Label>
                 <div className="mt-2 p-4 bg-gray-50 rounded-lg flex items-center justify-between">
@@ -728,9 +743,20 @@ MsgZone Team`
                     size="sm" 
                     onClick={removeLogo}
                     className="text-red-600 border-red-200 hover:bg-red-50"
+                    disabled={logoUploading}
                   >
                     Remove
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Uploading Status */}
+            {logoUploading && (
+              <div className="mt-4 text-center">
+                <div className="flex items-center justify-center space-x-2 text-blue-600">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm font-medium">Uploading logo...</span>
                 </div>
               </div>
             )}
