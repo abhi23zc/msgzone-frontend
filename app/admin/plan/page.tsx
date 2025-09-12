@@ -20,9 +20,14 @@ import {
   TrendingUp,
   Package,
   CheckCircle2,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import CreatePlanModal from "@/components/admin/CreatePlanModal";
 import EditPlanModal from "@/components/admin/EditPlanModal";
+import api from "@/services/api";
+import toast from "react-hot-toast";
 
 import { useAdminContext } from "@/context/Admin/AdminContext";
 
@@ -38,6 +43,7 @@ interface Plan {
   createdAt: string;
   __v: number;
   status?: "Active" | "Inactive"; // Assuming status might still be needed for filtering/display
+  order?: number; // Order for sorting plans
 }
 
 type FilterStatus = "all" | "active" | "inactive";
@@ -76,7 +82,7 @@ function PlanManagementPage() {
     },
     {
       title: "Total Revenue",
-      value: "$12,500",
+      value: "$0",
       change: "+22.4% this month",
       trend: "up",
       icon: CreditCard,
@@ -90,6 +96,7 @@ function PlanManagementPage() {
   ];
 
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [isReordering, setIsReordering] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -122,6 +129,7 @@ function PlanManagementPage() {
         __v: plan.__v,
         price: plan.price,
         status: plan.status || "Active", // Assuming a default status if not provided
+        order: plan.order || 0, // Include order field
       })));
     }
   }, [allPlans]);
@@ -130,18 +138,105 @@ function PlanManagementPage() {
     getAllPlans();
   }, []);
 
+  const handleReorder = async (planId: string, direction: 'up' | 'down') => {
+    const currentIndex = plans.findIndex(plan => plan._id === planId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= plans.length) return;
+
+    // Create new array with swapped items
+    const newPlans = [...plans];
+    [newPlans[currentIndex], newPlans[newIndex]] = [newPlans[newIndex], newPlans[currentIndex]];
+
+    // Update local state immediately for better UX
+    setPlans(newPlans);
+
+    try {
+      // Prepare order data for API
+      const planOrders = newPlans.map((plan, index) => ({
+        planId: plan._id,
+        order: index + 1
+      }));
+
+      console.log("Sending reorder request:", { planOrders });
+      const response = await api.put('/admin/plans/reorder', { planOrders });
+      
+      if (response.data.success) {
+        toast.success('Plans reordered successfully');
+      } else {
+        // Revert on failure
+        setPlans(plans);
+        toast.error('Failed to reorder plans');
+      }
+    } catch (error) {
+      // Revert on error
+      setPlans(plans);
+      toast.error('Failed to reorder plans');
+      console.error('Reorder error:', error);
+    }
+  };
+
+  const handleDragReorder = async (draggedPlanId: string, targetPlanId: string) => {
+    const draggedIndex = plans.findIndex(plan => plan._id === draggedPlanId);
+    const targetIndex = plans.findIndex(plan => plan._id === targetPlanId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create new array with moved item
+    const newPlans = [...plans];
+    const draggedPlan = newPlans.splice(draggedIndex, 1)[0];
+    newPlans.splice(targetIndex, 0, draggedPlan);
+
+    // Update local state immediately
+    setPlans(newPlans);
+
+    try {
+      // Prepare order data for API
+      const planOrders = newPlans.map((plan, index) => ({
+        planId: plan._id,
+        order: index + 1
+      }));
+
+      const response = await api.put('/admin/plans/reorder', { planOrders });
+      
+      if (response.data.success) {
+        toast.success('Plans reordered successfully');
+      } else {
+        // Revert on failure
+        setPlans(plans);
+        toast.error('Failed to reorder plans');
+      }
+    } catch (error) {
+      // Revert on error
+      setPlans(plans);
+      toast.error('Failed to reorder plans');
+      console.error('Reorder error:', error);
+    }
+  };
+
   return (
     <div className="w-full space-y-6 min-h-[85vh] bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Plan Management
         </h1>
-        <Button
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          Create New Plan
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant={isReordering ? "default" : "outline"}
+            onClick={() => setIsReordering(!isReordering)}
+            className="flex items-center gap-2"
+          >
+            <GripVertical className="w-4 h-4" />
+            {isReordering ? "Exit Reorder" : "Reorder Plans"}
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            Create New Plan
+          </Button>
+        </div>
         <CreatePlanModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
@@ -234,6 +329,7 @@ function PlanManagementPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">{isReordering ? "Order" : "#"}</TableHead>
               <TableHead>Plan Details</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Price</TableHead>
@@ -249,14 +345,14 @@ function PlanManagementPage() {
             {filteredPlans.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={10}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No plans found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPlans.map((plan) => (
+              filteredPlans.map((plan, index) => (
                 <motion.tr
                   key={plan._id}
                   className="hover:bg-gray-50/50"
@@ -264,6 +360,35 @@ function PlanManagementPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: filteredPlans.indexOf(plan) * 0.05 }}
                 >
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      {isReordering && (
+                        <div className="flex flex-col space-y-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleReorder(plan._id, 'up')}
+                            disabled={index === 0}
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleReorder(plan._id, 'down')}
+                            disabled={index === filteredPlans.length - 1}
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-full text-sm font-bold">
+                        {index + 1}
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="font-medium text-purple-600">

@@ -99,6 +99,18 @@ const Home: FC = () => {
     setIsPlanModalOpen(true);
   };
 
+  // Calculate days left for subscription
+  const getDaysLeft = () => {
+    if (!activePlan?.data?.endDate) return null;
+    const endDate = new Date(activePlan.data.endDate);
+    const today = new Date();
+    const timeDiff = endDate.getTime() - today.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    return daysLeft > 0 ? daysLeft : 0;
+  };
+
+  const daysLeft = getDaysLeft();
+
   const summaryCards = [
     {
       title: "Total Devices",
@@ -115,6 +127,7 @@ const Home: FC = () => {
     {
       title: `Subscription Status`,
       value: activePlan?.data?.plan?.name || "N/A",
+      subtitle: daysLeft !== null ? `${daysLeft} days left` : "No active plan",
       icon: <Shield className="w-6 h-6 text-white" />,
       gradient: "from-purple-500 to-violet-600",
       onClick: handlePlanCardClick,
@@ -329,9 +342,14 @@ const Home: FC = () => {
                   <h3 className="text-2xl sm:text-3xl font-bold text-slate-900">
                     {card.value}
                   </h3>
-                  <p className="text-slate-600 font-medium text-sm sm:text-base">
+                  <p className="text-slate-600 font-medium text-sm sm:text-base mb-0">
                     {card.title}
                   </p>
+                  {card.subtitle && (
+                    <p className="text-red-500 font-medium text-xs sm:text-sm ">
+                      {card.subtitle}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -423,7 +441,7 @@ const Home: FC = () => {
                     <span className="text-slate-700">
                       Device Limit:{" "}
                       <strong>
-                        {activePlan?.data?.plan?.deviceLimit === -1
+                        {!activePlan?.data?.plan?.deviceLimit
                           ? "Unlimited"
                           : activePlan?.data?.plan?.deviceLimit}
                       </strong>
@@ -434,7 +452,7 @@ const Home: FC = () => {
                     <span className="text-slate-700">
                       Message Limit:{" "}
                       <strong>
-                        {activePlan?.data?.plan?.messageLimit === -1
+                        {!activePlan?.data?.plan?.messageLimit
                           ? "Unlimited"
                           : activePlan?.data?.plan?.messageLimit}
                       </strong>
@@ -499,8 +517,7 @@ const Home: FC = () => {
                   <strong className="text-blue-700">
                     {activePlan?.data?.plan?.messageLimit === -1
                       ? "Unlimited"
-                      : activePlan?.data?.plan?.messageLimit -
-                      activePlan?.data?.usedMessages}
+                      : Math.max(0, activePlan?.data?.plan?.messageLimit - activePlan?.data?.usedMessages)}
                   </strong>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -509,9 +526,9 @@ const Home: FC = () => {
                     style={{
                       width: `${activePlan?.data?.plan?.messageLimit === -1
                         ? 0
-                        : (activePlan?.data?.usedMessages /
+                        : Math.min(100, (activePlan?.data?.usedMessages /
                           activePlan?.data?.plan?.messageLimit) *
-                        100
+                        100)
                         }%`,
                     }}
                   ></div>

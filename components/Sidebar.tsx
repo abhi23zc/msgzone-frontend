@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ApiOutlined,
   BookOutlined,
@@ -48,11 +48,57 @@ const items: MenuItem[] = [
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(true);
+  const [systemName, setSystemName] = useState("Msg Zone");
+  const [logoUrl, setLogoUrl] = useState("/assets/logo.png");
   const router = useRouter();
   const pathname = usePathname();
 
   const hideOnPaths = ["/login", "/register", "/verify", "/forgot"];
   const shouldHideSidebar = hideOnPaths.includes(pathname);
+
+  // Load general settings from localStorage and database
+  useEffect(() => {
+    const loadGeneralSettings = async () => {
+      try {
+        // First, try to load from localStorage
+        const savedSettings = localStorage.getItem('msgzone_general_settings');
+        if (savedSettings) {
+          const parsedSettings = JSON.parse(savedSettings);
+          if (parsedSettings.systemName) {
+            setSystemName(parsedSettings.systemName);
+          }
+          if (parsedSettings.logoUrl) {
+            // Convert relative URL to full URL using NEXT_PUBLIC_API_URL
+            const fullLogoUrl = parsedSettings.logoUrl.startsWith('http') 
+              ? parsedSettings.logoUrl 
+              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${parsedSettings.logoUrl}`;
+            setLogoUrl(fullLogoUrl);
+          }
+        }
+
+        // Then, try to load from database as fallback
+        const response = await api.get('/general-settings');
+        if (response.data.success) {
+          const settings = response.data.data;
+          if (settings.systemName && !localStorage.getItem('msgzone_general_settings')) {
+            setSystemName(settings.systemName);
+          }
+          if (settings.logoUrl && !localStorage.getItem('msgzone_general_settings')) {
+            // Convert relative URL to full URL using NEXT_PUBLIC_API_URL
+            const fullLogoUrl = settings.logoUrl.startsWith('http') 
+              ? settings.logoUrl 
+              : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${settings.logoUrl}`;
+            setLogoUrl(fullLogoUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading general settings:', error);
+        // Keep default values if both localStorage and database fail
+      }
+    };
+
+    loadGeneralSettings();
+  }, []);
 
   if (shouldHideSidebar) return null;
 
@@ -102,10 +148,17 @@ const Sidebar: React.FC = () => {
             ) : (
               <>
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <img src="/assets/logo.png" alt="msgzone logo" className="w-8 h-8" />
+                  <img 
+                    src={logoUrl} 
+                    alt={`${systemName} logo`} 
+                    className="w-8 h-8 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.src = "/assets/logo.png";
+                    }}
+                  />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-white mb-0">Msg Zone</h1>
+                  <h1 className="text-2xl font-bold text-white mb-0">{systemName}</h1>
                   <Text className="text-white/70 text-sm">Communication Hub</Text>
                 </div>
                 <button

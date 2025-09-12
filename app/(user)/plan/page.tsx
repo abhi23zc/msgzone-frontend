@@ -429,20 +429,22 @@ const PricingPlans = () => {
 
     return (
       <div
-        className={`relative bg-white rounded-3xl p-6 border transition-all duration-300 hover:shadow-xl ${
+        className={`relative bg-white rounded-xl border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
           subscription.status === "active"
-            ? "border-green-200 shadow-lg ring-2 ring-green-100"
-            : "border-yellow-200 shadow-md ring-2 ring-yellow-100"
+            ? "border-green-200 shadow-md ring-1 ring-green-100"
+            : subscription.status === "expired"
+            ? "border-red-200 shadow-md ring-1 ring-red-100"
+            : "border-yellow-200 shadow-sm ring-1 ring-yellow-100"
         }`}
       >
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-2 right-4">
           <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
               subscription.status === "active"
-                ? "bg-green-100 text-green-800"
+                ? "bg-green-100 text-green-700"
                 : subscription.status === "expired"
-                ? "bg-red-100 text-red-800"
-                : "bg-yellow-100 text-yellow-800"
+                ? "bg-red-100 text-red-700"
+                : "bg-yellow-100 text-yellow-700"
             }`}
           >
             {subscription.status === "active" ? (
@@ -461,91 +463,61 @@ const PricingPlans = () => {
           </span>
         </div>
 
-        <div className="flex items-center mb-6">
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-center mb-3">
           <div
-            className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getColorForPlan(
+              className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getColorForPlan(
               subscription.plan.name
-            )} flex items-center justify-center mr-4 shadow-lg`}
+              )} flex items-center justify-center mr-3 shadow-sm`}
           >
-            <IconComponent className="w-7 h-7 text-white" />
+              <IconComponent className="w-5 h-5 text-white" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-gray-800">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-gray-800 truncate">
               {subscription.plan.name}
             </h3>
-            <p className="text-gray-600 text-sm">
+              <p className="text-sm text-gray-500 truncate">
               {formatPrice(subscription.plan.price)} Plan
             </p>
           </div>
-
-          {subscription.status === "inactive" && (
-            <button
-              onClick={async () => {
-                await switchPlan(subscription.id);
-              }}
-              className="mt-5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
-            >
-              <Play className="w-4 h-4" />
-              Activate
-            </button>
-          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center mb-2">
-              <CalendarIcon className="w-4 h-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium text-gray-600">
-                Duration
-              </span>
-            </div>
-            <p className="text-lg font-semibold text-gray-800">
+          {/* Status and Duration */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-gray-50 rounded-md p-2 text-center">
+              <CalendarIcon className="w-3 h-3 text-gray-500 mx-auto mb-1" />
+              <p className="text-xs text-gray-600">Duration</p>
+              <p className="text-xs font-semibold text-gray-800">
               {formatDuration(subscription.plan.durationDays)}
             </p>
-            {subscription.status === "active" && (
-              <p
-                className={`text-xs mt-1 ${
-                  daysRemaining > 7 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
-              </p>
-            )}
           </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center mb-2">
-              <Smartphone className="w-4 h-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium text-gray-600">
-                Device Limit
-              </span>
-            </div>
-            <p className="text-lg font-semibold text-gray-800">
+            <div className="bg-gray-50 rounded-md p-2 text-center">
+              <Users className="w-3 h-3 text-gray-500 mx-auto mb-1" />
+              <p className="text-xs text-gray-600">Devices</p>
+              <p className="text-xs font-semibold text-gray-800">
               {subscription.plan.deviceLimit}
             </p>
-            <p className="text-xs text-gray-500 mt-1">Connected</p>
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+          {/* Messages Usage */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
             <div className="flex items-center">
-              <MessageSquare className="w-4 h-4 text-gray-500 mr-2" />
-              <span className="text-sm font-medium text-gray-600">
-                Messages
-              </span>
+                <MessageSquare className="w-3 h-3 text-gray-500 mr-1" />
+                <span className="text-xs text-gray-600">Messages</span>
             </div>
-            <span className="text-sm font-semibold text-gray-800">
+              <span className="text-xs font-semibold text-gray-800">
               {subscription.plan.type === "unlimited"
                 ? `${subscription.usedMessages.toLocaleString()} sent`
                 : `${subscription.usedMessages.toLocaleString()} / ${subscription.plan.messageLimit.toLocaleString()}`}
             </span>
           </div>
-
           {subscription.plan.type !== "unlimited" && (
-            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-1">
               <div
-                className={`h-2 rounded-full transition-all duration-300 ${
+                  className={`h-1 rounded-full transition-all duration-300 ${
                   usagePercentage > 80
                     ? "bg-red-500"
                     : usagePercentage > 60
@@ -558,9 +530,45 @@ const PricingPlans = () => {
           )}
         </div>
 
-        <div className="flex justify-between text-sm text-gray-600 pt-4 border-t border-gray-100">
+          {/* Days Remaining */}
+          {subscription.status === "active" && (
+            <div className="mb-3">
+              <div className="flex justify-center">
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    daysRemaining > 7
+                      ? "bg-green-100 text-green-700"
+                      : daysRemaining > 3
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {daysRemaining > 0 ? `${daysRemaining} days left` : "Expired"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Action Button */}
+          {subscription.status === "inactive" && (
+            <button
+              onClick={async () => {
+                await switchPlan(subscription.id);
+              }}
+              className="w-full py-2 px-3 rounded-lg font-semibold text-sm transition-all duration-200 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-sm"
+            >
+              <div className="flex items-center justify-center">
+                <Play className="w-3 h-3 mr-1" />
+                <span>Activate</span>
+              </div>
+            </button>
+          )}
+
+          {/* Date Range */}
+          <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
           <span>Start: {formatDate(subscription.startDate)}</span>
           <span>End: {formatDate(subscription.endDate)}</span>
+          </div>
         </div>
       </div>
     );
@@ -822,18 +830,18 @@ const PricingPlans = () => {
         </div>
 
         {activeTab === "current" && (
-          <div className="mb-12">
+          <div className="mb-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-800">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 Your Subscriptions
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm">
                 Monitor your active and queued subscriptions
               </p>
             </div>
 
             {currentSubscriptions?.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto">
                 {currentSubscriptions.map((subscription) => (
                   <SubscriptionCard
                     key={subscription.id}
@@ -842,19 +850,19 @@ const PricingPlans = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <AlertCircle className="w-12 h-12 text-gray-400" />
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
                   No Active Subscriptions
                 </h3>
-                <p className="text-gray-500 mb-6">
+                <p className="text-gray-500 mb-4 text-sm">
                   Get started by choosing a plan that fits your needs
                 </p>
                 <button
                   onClick={() => setActiveTab("plans")}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 text-sm"
                 >
                   Browse Plans
                 </button>
@@ -899,174 +907,101 @@ const PricingPlans = () => {
 
         {activeTab === "plans" && (
           <div>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm font-semibold mb-6 shadow-lg">
-                <Zap className="w-5 h-5 mr-2" />
-                Choose Your Perfect Plan
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full text-sm font-medium mb-4 shadow-md">
+                <Zap className="w-4 h-4 mr-2" />
+                Choose Your Plan
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-                Premium Plans
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Unlock powerful features with our flexible pricing options
-              </p>
+           
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
               {plans.map((plan) => {
                 const IconComponent = plan.icon;
                 return (
                   <div
                     key={plan._id}
-                    className={`relative bg-white rounded-3xl p-8 border transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
+                    className={`relative bg-white rounded-xl border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                       plan.popular
-                        ? "border-indigo-200 ring-2 ring-indigo-100 shadow-xl"
-                        : "border-gray-200 shadow-lg hover:border-indigo-200"
+                        ? "border-indigo-300 ring-1 ring-indigo-200 shadow-md"
+                        : "border-gray-200 shadow-sm hover:border-gray-300"
                     }`}
                     onMouseEnter={() => setHoveredPlan(plan._id)}
                     onMouseLeave={() => setHoveredPlan(null)}
                   >
                     {plan.popular && (
-                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                        <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-full shadow-lg">
+                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                        <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-full shadow-md">
                           <Star className="w-4 h-4 mr-1" />
-                          Most Popular
+                          Popular
                         </span>
                       </div>
                     )}
 
-                    <div className="flex items-center mb-6">
+                    <div className="p-4">
+                      {/* Header */}
+                      <div className="flex items-center mb-3">
                       <div
-                        className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${plan.color} flex items-center justify-center mr-4 shadow-lg`}
+                          className={`w-10 h-10 rounded-lg bg-gradient-to-br ${plan.color} flex items-center justify-center mr-3 shadow-sm`}
                       >
-                        <IconComponent className="w-8 h-8 text-white" />
+                          <IconComponent className="w-5 h-5 text-white" />
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-800">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-bold text-gray-800 truncate">
                           {plan.name}
                         </h3>
-                        <p className="text-gray-600 text-sm">
+                          <p className="text-sm text-gray-500 truncate">
                           {plan.description}
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-4 mb-8">
-                      <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center">
-                          <Calendar className="w-5 h-5 text-gray-500 mr-3" />
-                          <span className="text-gray-700 font-medium">
-                            Duration
-                          </span>
+                      {/* Price */}
+                      <div className="text-center mb-3">
+                        <div className="text-2xl font-bold text-gray-800">
+                          {formatPrice(plan.price)}
                         </div>
-                        <span className="text-gray-800 font-semibold">
+                        <div className="text-sm text-gray-500">
                           {formatDuration(plan.durationDays)}
-                        </span>
                       </div>
-
-                      <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center">
-                          <MessageSquare className="w-5 h-5 text-gray-500 mr-3" />
-                          <span className="text-gray-700 font-medium">
-                            Messages
-                          </span>
                         </div>
-                        <span className="text-gray-800 font-semibold">
+
+                      {/* Details Grid */}
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-gray-50 rounded-md p-3 text-center">
+                          <MessageSquare className="w-4 h-4 text-gray-500 mx-auto mb-1" />
+                          <p className="text-sm text-gray-600 font-medium">Messages</p>
+                          <p className="text-sm font-bold text-gray-800">
                           {plan.type === "unlimited"
                             ? "Unlimited"
+                              : plan.messageLimit && plan.messageLimit >= 1000 
+                                ? `${(plan.messageLimit / 1000).toFixed(0)}K`
                             : plan.messageLimit?.toLocaleString()}
-                        </span>
+                          </p>
                       </div>
-
-                      <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center">
-                          <Users className="w-5 h-5 text-gray-500 mr-3" />
-                          <span className="text-gray-700 font-medium">
-                            Devices
-                          </span>
-                        </div>
-                        <span className="text-gray-800 font-semibold">
+                        <div className="bg-gray-50 rounded-md p-3 text-center">
+                          <Users className="w-4 h-4 text-gray-500 mx-auto mb-1" />
+                          <p className="text-sm text-gray-600 font-medium">Devices</p>
+                          <p className="text-sm font-bold text-gray-800">
                           {plan.deviceLimit}
-                        </span>
+                          </p>
                       </div>
-
-                      <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-center">
-                          <TrendingUp className="w-5 h-5 text-gray-500 mr-3" />
-                          <span className="text-gray-700 font-medium">
-                            Type
-                          </span>
                         </div>
+
+                      {/* Type Badge */}
+                      <div className="flex justify-center mb-3">
                         <span
-                          className={`font-semibold px-3 py-1 rounded-full text-sm ${
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${
                             plan.type === "unlimited"
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-emerald-100 text-emerald-700"
                               : "bg-blue-100 text-blue-700"
                           }`}
                         >
                           {plan.type === "unlimited" ? "Unlimited" : "Limited"}
                         </span>
-                      </div>
                     </div>
 
-                    <div className="mb-8">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                        Features Included:
-                      </h4>
-                      <div className="space-y-3">
-                        {plan.features?.map((feature, index) => (
-                          <div key={index} className="flex items-center">
-                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                              <CheckCircle className="w-3 h-3 text-green-600" />
-                            </div>
-                            <span className="text-gray-700 text-sm">
-                              {feature}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mb-8">
-                      <div className="text-center">
-                        <div className="text-4xl font-bold text-gray-800 mb-2">
-                          {formatPrice(plan.price)}
-                        </div>
-                        <div className="text-gray-600">
-                          for {formatDuration(plan.durationDays)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col space-y-3 mt-6">
-                      {/* <button
-                        onClick={() => handlePayment(plan._id)}
-                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${selectedPlan === plan._id
-                            ? "bg-green-500 text-white"
-                            : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
-                          }`}
-                      >
-                        {selectedPlan === plan._id ? (
-                          <div className="flex items-center justify-center">
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Processing...
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center">
-                            <CreditCard className="w-5 h-5 mr-2" />
-                            Pay Online
-                          </div>
-                        )}
-                      </button> */}
-
-                      {/* <button
-                        onClick={() => handleManualPaymentClick(plan)}
-                        className="w-full py-3 px-6 rounded-2xl font-semibold bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 hover:shadow-md transition-all duration-300 flex items-center justify-center"
-                      >
-                        <FileText className="w-5 h-5 mr-2" />
-                        Pay Manually
-                      </button> */}
-
+                      {/* Button */}
                       <button
                         onClick={() => {
                           if (plan.name.includes("Free Tier")) {
@@ -1075,25 +1010,25 @@ const PricingPlans = () => {
                           } else handleManualPaymentClick(plan);
                         }}
                         disabled={loadingPlans.has(plan._id)}
-                        className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 ${
+                        className={`w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 ${
                           loadingPlans.has(plan._id)
                             ? "bg-green-500 text-white cursor-not-allowed"
-                            : `bg-gradient-to-r ${plan.color} text-white hover:shadow-xl hover:scale-105 active:scale-95`
+                            : plan.popular
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm"
+                            : `bg-gradient-to-r ${plan.color} text-white hover:shadow-md`
                         }`}
                       >
-                        <div className="flex items-center justify-center">
                           {loadingPlans.has(plan._id) ? (
-                            <>
-                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <CreditCard className="w-5 h-5 mr-2" />
-                              Pay
-                            </>
-                          )}
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <span>Processing...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            <span>Select Plan</span>
                         </div>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1101,9 +1036,9 @@ const PricingPlans = () => {
               })}
             </div>
 
-            <div className="mt-16 text-center">
-              <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg max-w-4xl mx-auto">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="mt-12 text-center">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-md max-w-4xl mx-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {[
                     {
                       icon: Shield,
@@ -1127,38 +1062,20 @@ const PricingPlans = () => {
                     },
                   ].map((feature, index) => (
                     <div key={index} className="text-center group">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <feature.icon className="w-8 h-8 text-blue-600" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                        <feature.icon className="w-6 h-6 text-blue-600" />
                       </div>
-                      <h4 className="font-semibold text-gray-800 mb-1">
+                      <h4 className="font-semibold text-gray-800 mb-1 text-sm">
                         {feature.label}
                       </h4>
-                      <p className="text-sm text-gray-600">{feature.desc}</p>
+                      <p className="text-xs text-gray-600">{feature.desc}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="mt-16 text-center">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 text-white max-w-3xl mx-auto">
-                <h3 className="text-3xl font-bold mb-4">Need Help Choosing?</h3>
-                <p className="text-blue-100 mb-8 text-lg">
-                  Our experts are here to help you find the perfect plan for
-                  your business needs
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button className="bg-white text-blue-600 px-8 py-4 rounded-2xl font-semibold hover:bg-blue-50 transition-all duration-300 flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 mr-2" />
-                    Live Chat Support
-                  </button>
-                  <button className="bg-blue-500 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-blue-400 transition-all duration-300 flex items-center justify-center border-2 border-blue-400">
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Schedule a Call
-                  </button>
-                </div>
-              </div>
-            </div>
+         
           </div>
         )}
 

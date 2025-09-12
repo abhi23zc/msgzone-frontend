@@ -13,14 +13,25 @@ import {
   Smartphone,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Settings as SettingsIcon,
+  Upload,
+  Image,
+  FileText,
+  Eye,
+  Edit3,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ReactQuill with SSR disabled
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 function Settings() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('whatsapp');
+  const [activeTab, setActiveTab] = useState('general');
   const [showDeviceSuccess, setShowDeviceSuccess] = useState(false);
   const [selectedDeviceName, setSelectedDeviceName] = useState('business');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -30,6 +41,103 @@ function Settings() {
   const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  
+  // Message Templates State
+  const [messageTemplates, setMessageTemplates] = useState({
+    paymentApproval: `🎉 *Payment Approved!*
+
+Hello {{userName}},
+
+Your payment of ₹{{amount}} for the *{{planName}}* plan has been approved successfully!
+
+📋 *Payment Details:*
+• Amount: ₹{{amount}}
+• Plan: {{planName}}
+• Payment Method: {{paymentMethod}}
+• UTR: {{utrNumber}}
+• Status: ✅ Approved
+• Approved At: {{approvedAt}}
+
+📋 *Plan Details:*
+• Duration: {{durationDays}} days
+• Messages: {{messageLimit}} messages
+• Features: {{features}}
+• Start Date: {{startDate}}
+• End Date: {{endDate}}
+
+🚀 *What's Next:*
+• Your subscription is now active
+• You can start sending messages immediately
+• Access all premium features
+• Track your usage in the dashboard
+
+Thank you for choosing MsgZone! 
+
+Need help? Contact our support team anytime.
+
+Best regards,
+MsgZone Team`,
+    paymentRejection: `❌ *Payment Rejected*
+
+Hello {{userName}},
+
+We regret to inform you that your payment of ₹{{amount}} for the *{{planName}}* plan has been rejected.
+
+📋 *Payment Details:*
+• Amount: ₹{{amount}}
+• Plan: {{planName}}
+• UTR: {{utrNumber}}
+• Status: ❌ Rejected
+• Rejected At: {{rejectedAt}}
+
+*Reason:* {{rejectionReason}}
+
+🔄 *What's Next:*
+• Please verify your payment details
+• Ensure UTR number is correct
+• Check if payment was successful
+• Contact support if you believe this is an error
+
+💡 *Need Help?*
+• Contact our support team
+• Resubmit payment with correct details
+• Check our payment guidelines
+
+We're here to help you get started!
+
+Best regards,
+MsgZone Team`,
+    paymentPending: `⏳ *Payment Under Review*
+
+Hello {{userName}},
+
+Your payment of ₹{{amount}} for the *{{planName}}* plan has been received and is currently under review.
+
+📋 *Payment Details:*
+• Amount: ₹{{amount}}
+• Plan: {{planName}}
+• Payment Method: {{paymentMethod}}
+• UTR: {{utrNumber}}
+• Status: 🔍 Pending Review
+
+📋 *Plan Details:*
+• Duration: {{durationDays}} days
+• Messages: {{messageLimit}} messages
+• Features: {{features}}
+
+Our team will review your payment and activate your plan within 24 hours. You will receive a confirmation message once approved.
+
+Thank you for your patience!
+
+Best regards,
+MsgZone Team`
+  });
+  
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Notification component
   const showNotification = useCallback((type: 'success' | 'error', message: string) => {
@@ -39,11 +147,8 @@ function Settings() {
 
   const [settings, setSettings] = useState({
     // General Settings
-    systemName: 'WhatsApp Bulk Sender',
-    adminEmail: 'admin@msgzone.com',
-
-    timezone: 'UTC',
-    language: 'en',
+    systemName: 'MsgZone',
+    logoUrl: '',
     
     // WhatsApp Settings
     whatsappEnabled: true,
@@ -98,9 +203,43 @@ function Settings() {
     }
   }, [showNotification]);
 
+  const saveToLocalStorage = useCallback((settingsData: any) => {
+    try {
+      localStorage.setItem('msgzone_general_settings', JSON.stringify(settingsData));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, []);
+
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const savedSettings = localStorage.getItem('msgzone_general_settings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(prev => ({
+          ...prev,
+          systemName: parsedSettings.systemName || prev.systemName,
+          logoUrl: parsedSettings.logoUrl || prev.logoUrl,
+        }));
+        
+        // Set logo preview if logoUrl exists
+        if (parsedSettings.logoUrl) {
+          // Convert relative URL to full URL using NEXT_PUBLIC_API_URL
+          const fullLogoUrl = parsedSettings.logoUrl.startsWith('http') 
+            ? parsedSettings.logoUrl 
+            : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${parsedSettings.logoUrl}`;
+          setLogoPreview(fullLogoUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+  }, []);
+
   useEffect(() => {
     checkUser();
-  }, [checkUser]);
+    loadFromLocalStorage();
+  }, [checkUser, loadFromLocalStorage]);
 
   const handleInputChange = (field: string, value: any) => {
     setSettings(prev => ({
@@ -108,6 +247,98 @@ function Settings() {
       [field]: value
     }));
   };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showNotification('error', 'Please select a valid image file');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showNotification('error', 'File size must be less than 5MB');
+        return;
+      }
+
+      try {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('logo', file);
+
+        // Upload file to backend
+        const response = await api.post('/admin/general-settings/upload-logo', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.data.success) {
+          const logoUrl = response.data.data.logoUrl;
+          
+          // Convert relative URL to full URL using NEXT_PUBLIC_API_URL
+          const fullLogoUrl = logoUrl.startsWith('http') 
+            ? logoUrl 
+            : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${logoUrl}`;
+          
+          // Update settings with the uploaded logo URL
+          setSettings(prev => ({
+            ...prev,
+            logoUrl: fullLogoUrl
+          }));
+          
+          // Set preview
+          setLogoPreview(fullLogoUrl);
+          setLogoFile(file);
+          
+          showNotification('success', 'Logo uploaded successfully!');
+        } else {
+          showNotification('error', response.data.message || 'Failed to upload logo');
+        }
+      } catch (error) {
+        console.error('Error uploading logo:', error);
+        showNotification('error', 'Failed to upload logo');
+      }
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setSettings(prev => ({
+      ...prev,
+      logoUrl: ''
+    }));
+    showNotification('success', 'Logo removed successfully!');
+  };
+
+  const fetchGeneralSettings = useCallback(async () => {
+    try {
+      const res = await api.get("/admin/general-settings");
+      if (res?.data?.success) {
+        const generalSettings = res.data.data;
+        setSettings(prev => ({
+          ...prev,
+          systemName: generalSettings.systemName || prev.systemName,
+          logoUrl: generalSettings.logoUrl || prev.logoUrl,
+        }));
+        
+        // Set logo preview if logoUrl exists
+        if (generalSettings.logoUrl) {
+          // Convert relative URL to full URL using NEXT_PUBLIC_API_URL
+          const fullLogoUrl = generalSettings.logoUrl.startsWith('http') 
+            ? generalSettings.logoUrl 
+            : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${generalSettings.logoUrl}`;
+          setLogoPreview(fullLogoUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching general settings:", error);
+      // Don't show error notification for general settings as it's not critical
+    }
+  }, []);
 
   const fetchPaymentSettings = useCallback(async () => {
     if (paymentSettingsLoading) return; // Prevent multiple simultaneous requests
@@ -136,41 +367,85 @@ function Settings() {
     } finally {
       setPaymentSettingsLoading(false);
     }
-  }, [showNotification, paymentSettingsLoading]);
+  }, [showNotification]);
 
   const handleSave = useCallback(async () => {
     try {
       setSaving(true);
-      const paymentSettingsData = {
-        qrUpiEnabled: settings.qrUpiEnabled,
-        qrCodeImage: settings.qrCodeUrl,
-        upiId: settings.upiId,
-        bankAccountEnabled: settings.bankAccountEnabled,
-        bankDetails: {
-          accountHolderName: settings.accountHolderName,
-          bankName: settings.bankName,
-          accountNumber: settings.accountNumber,
-          ifscCode: settings.ifscCode,
-          branchName: settings.branchName,
-        },
-        currency: "INR",
-        taxRate: 0,
-        processingFee: 0,
-      };
+      console.log('Saving settings for tab:', activeTab);
+      
+      if (activeTab === 'general') {
+        // Save general settings
+        const generalSettingsData = {
+          systemName: settings.systemName,
+          logoUrl: logoPreview || settings.logoUrl,
+        };
 
-      const res = await api.put("/admin/payment-settings", paymentSettingsData);
-      if (res?.data?.success) {
-        showNotification('success', 'Payment settings saved successfully!');
+        console.log('Saving general settings:', generalSettingsData);
+
+        // Save to localStorage
+        saveToLocalStorage(generalSettingsData);
+
+        // Save to backend
+        const res = await api.put("/admin/general-settings", generalSettingsData);
+        console.log('General settings response:', res.data);
+        if (res?.data?.success) {
+          showNotification('success', 'General settings saved successfully!');
+        } else {
+          showNotification('error', res.data.message || 'Failed to save general settings');
+        }
+      } else if (activeTab === 'payments') {
+        // Save payment settings
+        const paymentSettingsData = {
+          qrUpiEnabled: settings.qrUpiEnabled,
+          qrCodeImage: settings.qrCodeUrl,
+          upiId: settings.upiId,
+          bankAccountEnabled: settings.bankAccountEnabled,
+          bankDetails: {
+            accountHolderName: settings.accountHolderName,
+            bankName: settings.bankName,
+            accountNumber: settings.accountNumber,
+            ifscCode: settings.ifscCode,
+            branchName: settings.branchName,
+          },
+          currency: "INR",
+          taxRate: 0,
+          processingFee: 0,
+        };
+
+        console.log('Saving payment settings:', paymentSettingsData);
+        const res = await api.put("/admin/payment-settings", paymentSettingsData);
+        console.log('Payment settings response:', res.data);
+        if (res?.data?.success) {
+          showNotification('success', 'Payment settings saved successfully!');
+        } else {
+          showNotification('error', res.data.message || 'Failed to save payment settings');
+        }
+      } else if (activeTab === 'templates') {
+        // Save message templates
+        console.log('Saving message templates:', messageTemplates);
+        const res = await api.put("/admin/message-templates", messageTemplates);
+        console.log('Message templates response:', res.data);
+        if (res?.data?.success) {
+          showNotification('success', 'Message templates saved successfully!');
+        } else {
+          showNotification('error', res.data.message || 'Failed to save message templates');
+        }
+      } else if (activeTab === 'whatsapp') {
+        // WhatsApp tab doesn't have settings to save, just show a message
+        console.log('WhatsApp tab - no settings to save');
+        showNotification('success', 'WhatsApp settings are managed automatically!');
       } else {
-        showNotification('error', res.data.message || 'Failed to save payment settings');
+        console.log('Unknown tab:', activeTab);
+        showNotification('error', 'Unknown tab - cannot save settings');
       }
     } catch (error) {
-      console.error('Error saving payment settings:', error);
-      showNotification('error', 'Failed to save payment settings');
+      console.error('Error saving settings:', error);
+      showNotification('error', `Failed to save settings: ${error}`);
     } finally {
       setSaving(false);
     }
-  }, [settings, showNotification]);
+  }, [settings, activeTab, logoPreview, showNotification, saveToLocalStorage, messageTemplates]);
 
   const fetchDevices = useCallback((userData?: any) => {
     const userToUse = userData || user;
@@ -197,15 +472,37 @@ function Settings() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (activeTab === 'payments') {
-      fetchPaymentSettings();
+  // Template Management Functions
+  const fetchMessageTemplates = useCallback(async () => {
+    try {
+      setTemplateLoading(true);
+      const res = await api.get("/admin/message-templates");
+      if (res?.data?.success) {
+        setMessageTemplates(res.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching message templates:", error);
+      // Don't show error notification as templates are not critical
+    } finally {
+      setTemplateLoading(false);
     }
-  }, [activeTab]);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'general') {
+      fetchGeneralSettings();
+    } else if (activeTab === 'payments') {
+      fetchPaymentSettings();
+    } else if (activeTab === 'templates') {
+      fetchMessageTemplates();
+    }
+  }, [activeTab, fetchGeneralSettings, fetchPaymentSettings, fetchMessageTemplates]);
 
   const tabs = [
+    { id: 'general', label: 'General', icon: SettingsIcon, color: 'bg-gray-500' },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: 'bg-green-500' },
-    { id: 'payments', label: 'Payments', icon: CreditCard, color: 'bg-purple-500' }
+    { id: 'payments', label: 'Payments', icon: CreditCard, color: 'bg-purple-500' },
+    { id: 'templates', label: 'Message Templates', icon: FileText, color: 'bg-blue-500' }
   ];
 
 
@@ -231,6 +528,239 @@ function Settings() {
       setDevicesLoading(false);
     }
   }, [selectedDeviceId, showNotification]);
+
+  const saveMessageTemplates = useCallback(async () => {
+    try {
+      setSaving(true);
+      const res = await api.put("/admin/message-templates", messageTemplates);
+      if (res?.data?.success) {
+        showNotification('success', 'Message templates saved successfully!');
+      } else {
+        showNotification('error', res.data.message || 'Failed to save message templates');
+      }
+    } catch (error) {
+      console.error('Error saving message templates:', error);
+      showNotification('error', 'Failed to save message templates');
+    } finally {
+      setSaving(false);
+    }
+  }, [messageTemplates, showNotification]);
+
+  const handleTemplateChange = (templateType: string, content: string) => {
+    setMessageTemplates(prev => ({
+      ...prev,
+      [templateType]: content
+    }));
+  };
+
+  const generatePreview = (templateType: string) => {
+    const template = messageTemplates[templateType as keyof typeof messageTemplates];
+    const sampleData = {
+      userName: 'John Doe',
+      amount: '999',
+      planName: 'Premium Plan',
+      paymentMethod: 'QR Code & UPI',
+      utrNumber: 'TXN123456789',
+      approvedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      rejectedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      durationDays: '30',
+      messageLimit: '1000',
+      features: 'Unlimited messages, Priority support, Advanced analytics',
+      startDate: new Date().toLocaleDateString('en-IN'),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
+      rejectionReason: 'Payment verification failed'
+    };
+
+    let preview = template;
+    Object.entries(sampleData).forEach(([key, value]) => {
+      preview = preview.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    });
+
+    setPreviewTemplate(preview);
+    setShowPreview(true);
+  };
+
+  const convertToWhatsAppText = (content: string) => {
+    if (!content) return "";
+    
+    const isHTML = /<\/?[a-z][\s\S]*>/i.test(content);
+    
+    if (!isHTML) return content;
+    
+    const div = document.createElement("div");
+    div.innerHTML = content;
+    
+    const walk = (node: any) => {
+      let text = "";
+      
+      node.childNodes.forEach((child: any) => {
+        if (child.nodeType === 3) {
+          text += child.nodeValue;
+        } else if (child.nodeType === 1) {
+          const tag = child.nodeName;
+          
+          if (tag === "BR") {
+            text += "\n";
+          } else if (["P", "DIV", "LI"].includes(tag)) {
+            text += walk(child) + "\n";
+          } else if (["STRONG", "B"].includes(tag)) {
+            text += `*${walk(child)}*`;
+          } else if (["EM", "I"].includes(tag)) {
+            text += `_${walk(child)}_`;
+          } else if (["S", "DEL"].includes(tag)) {
+            text += `~${walk(child)}~`;
+          } else {
+            text += walk(child);
+          }
+        }
+      });
+      
+      return text;
+    };
+    
+    return walk(div).replace(/\n{2,}/g, "\n\n").trim();
+  };
+
+  const renderWhatsAppPreview = (content: string) => {
+    const whatsappText = convertToWhatsAppText(content);
+    const lines = whatsappText.split("\n").map((line) =>
+      line
+        .replace(/\*(.*?)\*/g, "<strong>$1</strong>")
+        .replace(/_(.*?)_/g, "<em>$1</em>")
+        .replace(/~(.*?)~/g, "<s>$1</s>")
+    );
+    
+    const htmlContent = `<ul style="list-style: none; padding-left: 0; margin: 0;">${lines
+      .map((line) => `<li style="margin: 0; padding: 0;">${line}</li>`)
+      .join("")}</ul>`;
+    
+    return (
+      <div
+        className="text-sm text-gray-800"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+    );
+  };
+
+  const renderGeneralSettings = () => (
+    <div className="space-y-6">
+    
+      {/* System Name & Logo */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-gray-500 rounded-xl flex items-center justify-center shadow-lg">
+              <SettingsIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Brand Identity</h3>
+              <p className="text-gray-600">Set your system name and upload a logo</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* System Name */}
+          <div className="space-y-2">
+            <Label htmlFor="systemName">System Name</Label>
+            <Input
+              id="systemName"
+              value={settings.systemName}
+              onChange={(e) => handleInputChange('systemName', e.target.value)}
+              placeholder="Enter your system name"
+              className="text-lg font-medium"
+            />
+            <p className="text-sm text-gray-500">This will be displayed throughout the application</p>
+          </div>
+
+          {/* Logo Upload */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-medium text-gray-900">System Logo</Label>
+              <p className="text-sm text-gray-500">Upload your company or system logo (PNG, JPG, SVG - Max 5MB)</p>
+            </div>
+            
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+              <div className="space-y-4">
+                <div className="mx-auto h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Image className="h-8 w-8 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-lg font-medium text-gray-900">Upload Logo</p>
+                  <p className="text-sm text-gray-500">Drag and drop or click to browse</p>
+                </div>
+                <div className="flex items-center justify-center space-x-3">
+                  <input
+                    type="file"
+                    id="logoUpload"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    
+                  />
+                  <label htmlFor="logoUpload">
+                    <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Logo Preview */}
+            {(logoPreview || settings.logoUrl) && (
+              <div className="mt-4">
+                <Label className="text-sm font-medium text-gray-700">Current Logo</Label>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <img 
+                      src={logoPreview || settings.logoUrl} 
+                      alt="System Logo" 
+                      className="h-16 w-16 object-contain bg-white rounded-lg border border-gray-200 p-2"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Logo Preview</p>
+                      <p className="text-xs text-gray-500">This will be displayed in the header and throughout the app</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={removeLogo}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+      {/* Save Button */}
+      <div className="flex justify-end pt-6">
+        <Button 
+          onClick={handleSave}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-2"
+          disabled={saving}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save General Settings
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderWhatsAppSettings = () => (
     <div className="space-y-6">
@@ -506,7 +1036,9 @@ function Settings() {
                   <Label className="text-sm font-medium text-gray-700">Current QR Code</Label>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg">
                     <img 
-                      src={settings.qrCodeUrl} 
+                      src={settings.qrCodeUrl.startsWith('http') 
+                        ? settings.qrCodeUrl 
+                        : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${settings.qrCodeUrl}`} 
                       alt="Payment QR Code" 
                       className="h-32 w-32 mx-auto object-contain"
                     />
@@ -691,14 +1223,250 @@ function Settings() {
   );
 
 
+  const renderMessageTemplates = () => (
+    <div className="space-y-6">
+      {/* Template Management Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Message Templates</h2>
+        <p className="text-gray-600">Customize WhatsApp message templates for payment notifications</p>
+      </div>
+
+      {/* Available Variables Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start space-x-3">
+          <div className="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+            <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-blue-900">Available Variables</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              Use these variables in your templates: <code className="bg-blue-100 px-1 rounded">{"{{userName}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{amount}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{planName}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{paymentMethod}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{utrNumber}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{approvedAt}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{rejectedAt}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{durationDays}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{messageLimit}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{features}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{startDate}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{endDate}}"}</code>, <code className="bg-blue-100 px-1 rounded">{"{{rejectionReason}}"}</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {templateLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="text-gray-600">Loading message templates...</span>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Payment Approval Template */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Payment Approval Template</h3>
+                    <p className="text-gray-600">Message sent when payment is approved</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generatePreview('paymentApproval')}
+                  className="text-green-600 border-green-200 hover:bg-green-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <ReactQuill
+                theme="snow"
+                value={messageTemplates.paymentApproval}
+                onChange={(content) => handleTemplateChange('paymentApproval', content)}
+                className="h-64"
+                modules={{
+                  toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['clean']
+                  ]
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Payment Rejection Template */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-rose-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <XCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Payment Rejection Template</h3>
+                    <p className="text-gray-600">Message sent when payment is rejected</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generatePreview('paymentRejection')}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <ReactQuill
+                theme="snow"
+                value={messageTemplates.paymentRejection}
+                onChange={(content) => handleTemplateChange('paymentRejection', content)}
+                className="h-64"
+                modules={{
+                  toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['clean']
+                  ]
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Payment Pending Template */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Payment Pending Template</h3>
+                    <p className="text-gray-600">Message sent when payment is under review</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generatePreview('paymentPending')}
+                  className="text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <ReactQuill
+                theme="snow"
+                value={messageTemplates.paymentPending}
+                onChange={(content) => handleTemplateChange('paymentPending', content)}
+                className="h-64"
+                modules={{
+                  toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['clean']
+                  ]
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-6">
+            <Button 
+              onClick={saveMessageTemplates}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2"
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Message Templates
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">WhatsApp Preview</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(false)}
+                  className="text-gray-600 border-gray-200 hover:bg-gray-50"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="relative w-[280px] h-[400px] mx-auto">
+                {/* Phone Frame */}
+                <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
+                  {/* Notch */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl"></div>
+                  
+                  {/* Screen */}
+                  <div className="absolute inset-4 bg-white rounded-[32px] overflow-hidden">
+                    {/* WhatsApp Header */}
+                    <div className="h-14 bg-[#075E54] flex items-center px-4">
+                      <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                      <div className="ml-3">
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                        <div className="h-3 w-16 bg-gray-200 rounded mt-1"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Message Preview */}
+                    <div className="p-4 h-[calc(100%-56px)] overflow-y-auto">
+                      <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%]">
+                        {renderWhatsAppPreview(previewTemplate)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'general':
+        return renderGeneralSettings();
       case 'whatsapp':
         return renderWhatsAppSettings();
       case 'payments':
         return renderPaymentSettings();
+      case 'templates':
+        return renderMessageTemplates();
       default:
-        return renderWhatsAppSettings();
+        return renderGeneralSettings();
     }
   };
 
@@ -794,8 +1562,10 @@ function Settings() {
             {tabs.find(t => t.id === activeTab)?.label} Settings
           </CardTitle>
           <CardDescription>
+            {activeTab === 'general' && 'Configure system name, logo, and basic application settings'}
             {activeTab === 'whatsapp' && 'Manage WhatsApp Business API integration and settings'}
             {activeTab === 'payments' && 'Configure payment processing and billing settings'}
+            {activeTab === 'templates' && 'Customize WhatsApp message templates for payment notifications'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
