@@ -16,7 +16,7 @@ const jost = Jost({
 });
 
 export const metadata: Metadata = {
-  title: "MSG zone",
+  title: "WP",
   description:
     "Bulk WhatsApp message sender web application - Send messages to multiple contacts efficiently",
 };

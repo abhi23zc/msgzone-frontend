@@ -4,7 +4,7 @@ import { AdminProvider } from "@/context/Admin/AdminContext";
 import { Toaster } from "react-hot-toast";
 import ProtectedAdmin from "./ProtectedAdmin";
 export const metadata = {
-  title: "MsgZone | Admin ",
+  title: "Admin ",
   description: "Whatsapp bulk message sender platform",
 };
 
