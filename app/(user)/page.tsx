@@ -282,13 +282,13 @@ const Home: FC = () => {
               className="shadow-lg min-w-[56px]"
             />
             <div className="min-w-0">
-              <p className="text-slate-600 text-base sm:text-lg font-medium truncate">
+              <p className="text-slate-600 text-base sm:text-lg font-medium truncate mb-0">
                 Welcome back,{" "}
                 <span className="text-slate-900 font-semibold">
                   {user?.data?.user?.name || "Professional"}
                 </span>
               </p>
-              <p className="text-xs sm:text-sm text-slate-500 truncate">
+              <p className="text-xs sm:text-sm text-slate-500 truncate mb-0">
                 Manage your WhatsApp Business communications with
                 enterprise-grade reliability
               </p>
@@ -303,10 +303,10 @@ const Home: FC = () => {
                 <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
               </div>
               <div className="space-y-0.5">
-                <p className="font-semibold text-slate-900 text-xs sm:text-sm truncate">
+                <p className="font-semibold text-slate-900 text-xs sm:text-sm truncate mb-0">
                   {user?.data?.user?.name || "Professional User"}
                 </p>
-                <p className="text-xs text-slate-500 font-medium truncate">
+                <p className="text-xs text-slate-500 font-medium truncate mb-0">
                   {user?.data?.user?.email}
                 </p>
                 <div className="flex items-center gap-1">

@@ -32,6 +32,7 @@ interface AuthContextType {
   error: null | string;
   sendOtp: (email: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
+  verifyLoginOtp: (email: string, otp: string) => Promise<void>;
   // Reset password functions
   forgotPassword: (email: string) => Promise<any>;
   verifyResetOtp: (email: string, otp: string) => Promise<any>;
@@ -66,6 +67,7 @@ const AuthContext = createContext<AuthContextType>({
   checkUser: async () => {},
   sendOtp: async () => {},
   verifyOtp: async () => {},
+  verifyLoginOtp: async () => {},
   forgotPassword: async () => {},
   verifyResetOtp: async () => {},
   resetPassword: async () => {},
@@ -131,10 +133,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null);
       setLoading(true);
       const res = await api.post("/auth/login", { email, password });
-      // console.log(res)
       setLoading(false);
+      
+      if (res.data?.success && res.data?.message?.includes("Login OTP sent")) {
+        toast.success("Login OTP sent to your email!");
+        router.push(`/login-verify?email=${email}`);
+        return;
+      }
+      
       setUser(res.data);
-      // console.log("Data", res.data);
     } catch (error) {
       console.log("Login error:", error);
       const err = error as AxiosError<{ message: string }>;
@@ -226,7 +233,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null);
       const res = await api.post("/auth/verify-otp", { email, otp });
       if (res.data?.success) {
-        toast.success("Verification Successfull!");
+        toast.success("Verification Successful!");
       } else {
         toast.error(res.data?.message);
       }
@@ -236,6 +243,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Otp validation error:", error);
       const err = error as AxiosError<{ message: string }>;
       toast.error(err.response?.data?.message || "Otp verification failed");
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const verifyLoginOtp = async (email: string, otp: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+      const res = await api.post("/auth/verify-login-otp", { email, otp });
+      if (res.data?.success) {
+        setUser(res.data.data.user);
+        window.location.href = "/";
+      } else {
+        toast.error(res.data?.message);
+      }
+      setLoading(false);
+      return res.data;
+    } catch (error) {
+      console.log("Login OTP validation error:", error);
+      const err = error as AxiosError<{ message: string }>;
+      toast.error(err.response?.data?.message || "Login OTP verification failed");
       setLoading(false);
       return null;
     }
@@ -438,6 +467,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         error,
         sendOtp,
         verifyOtp,
+        verifyLoginOtp,
         getAllPlans,
         getActivePlan,
         activePlan,

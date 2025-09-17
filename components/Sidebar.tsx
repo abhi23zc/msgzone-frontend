@@ -53,7 +53,7 @@ const Sidebar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const hideOnPaths = ["/login", "/register", "/verify", "/forgot"];
+  const hideOnPaths = ["/login", "/register", "/verify", "/forgot", "/login-verify"];
   const shouldHideSidebar = hideOnPaths.includes(pathname);
 
   // Load general settings from localStorage and database

@@ -45,7 +45,6 @@ function Settings() {
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoUploading, setLogoUploading] = useState(false);
   
-  // Message Templates State
   const [messageTemplates, setMessageTemplates] = useState({
     paymentApproval: `🎉 *Payment Approved!*
 
@@ -140,48 +139,39 @@ MsgZone Team`
   const [previewTemplate, setPreviewTemplate] = useState<string>('');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Notification component
   const showNotification = useCallback((type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
   }, []);
 
   const [settings, setSettings] = useState({
-    // General Settings
     systemName: 'MsgZone',
     logoUrl: '',
-    
-    // WhatsApp Settings
     whatsappEnabled: true,
     webhookUrl: '',
     autoReply: false,
     businessProfile: true,
     messageTemplate: '',
-    
-    // Payment Settings
     paymentEnabled: true,
-    
-    // QR Code & UPI Settings
     qrUpiEnabled: true,
     qrCodeUrl: '',
     upiId: '',
-    
-    // Bank Account Settings
     bankAccountEnabled: true,
     accountHolderName: '',
     bankName: '',
     accountNumber: '',
     ifscCode: '',
     branchName: '',
-    
-    // Email Settings
     smtpEnabled: true,
     smtpHost: 'smtp.gmail.com',
     smtpPort: 587,
     smtpUser: '',
     smtpPassword: '',
     fromEmail: 'noreply@msgzone.com',
-    fromName: 'MsgZone'
+    fromName: 'MsgZone',
+    emailNotifications: true,
+    smsNotifications: true,
+    whatsappLoginNotifications: true
   });
 
 
@@ -328,6 +318,9 @@ MsgZone Team`
           ...prev,
           systemName: generalSettings.systemName || prev.systemName,
           logoUrl: generalSettings.logoUrl || prev.logoUrl,
+          emailNotifications: generalSettings.emailNotifications !== undefined ? generalSettings.emailNotifications : prev.emailNotifications,
+          smsNotifications: generalSettings.smsNotifications !== undefined ? generalSettings.smsNotifications : prev.smsNotifications,
+          whatsappLoginNotifications: generalSettings.whatsappLoginNotifications !== undefined ? generalSettings.whatsappLoginNotifications : prev.whatsappLoginNotifications,
         }));
         
         // Set logo preview if logoUrl exists
@@ -384,6 +377,9 @@ MsgZone Team`
         const generalSettingsData = {
           systemName: settings.systemName,
           logoUrl: logoPreview || settings.logoUrl,
+          emailNotifications: settings.emailNotifications,
+          smsNotifications: settings.smsNotifications,
+          whatsappLoginNotifications: settings.whatsappLoginNotifications,
         };
 
         console.log('Saving general settings:', generalSettingsData);
@@ -764,6 +760,41 @@ MsgZone Team`
         </div>
       </div>
 
+      {/* Notification Settings */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
+              <MessageCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Notification Settings</h3>
+              <p className="text-gray-600">Configure system notifications and alerts</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+
+
+          {/* WhatsApp Login Notifications */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <MessageCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-900">WhatsApp Login Notifications</h4>
+                <p className="text-xs text-gray-500">Send login alerts with device info via WhatsApp</p>
+              </div>
+            </div>
+            <Switch
+              checked={settings.whatsappLoginNotifications}
+              onCheckedChange={(checked) => handleInputChange('whatsappLoginNotifications', checked)}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Save Button */}
       <div className="flex justify-end pt-6">
