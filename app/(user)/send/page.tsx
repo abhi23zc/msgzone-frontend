@@ -332,7 +332,6 @@ function Send() {
             <Form.Item
               label="Message"
               name="message"
-              rules={[{ required: true, message: "Please enter your message" }]}
             >
               <ReactQuill
                 theme="snow"
