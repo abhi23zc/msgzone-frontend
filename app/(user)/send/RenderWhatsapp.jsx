@@ -27,7 +27,7 @@ export function RenderWhatsapp(messageContent) {
 
   let content = isHTML
     ? DOMPurify.sanitize(messageContent)
-        .replace(/<p><br><\/p>/g, "") // remove blank lines
+        .replace(/<p><br><\/p>/g, '<li style="margin:0;padding:0;height:0.75em;">&nbsp;</li>') // blank lines as spacing
         .replace(/<p>/g, '<li style="margin:0;padding:0;">')
         .replace(/<\/p>/g, "</li>")
         .replace(/^/, '<ul style="list-style:none;padding:0;margin:0;">')
@@ -93,41 +93,60 @@ export function convertToWhatsAppText(messageContent) {
 
   const isHTML = /<\/?[a-z][\s\S]*>/i.test(messageContent || "");
 
-  // Convert markdown-style formatting
-  const fixMarkdown = (text) =>
+  // Clean up final text
+  const cleanText = (text) =>
     text
       .replace(/\*\*(.*?)\*\*/g, "*$1*") // bold: **bold** → *bold*
-      .replace(/_(.*?)_/g, "_$1_")       // italic
-      .replace(/~(.*?)~/g, "~$1~")       // strikethrough
-      .replace(/\r?\n/g, "\n")           // normalize line breaks
-      .replace(/\n{2,}/g, "\n\n")        // max 2 line breaks
+      .replace(/\r\n/g, "\n")            // normalize Windows line breaks
+      .replace(/\n{3,}/g, "\n\n")        // max 2 consecutive newlines
       .trim();
 
-  if (!isHTML) return fixMarkdown(messageContent);
+  if (!isHTML) return cleanText(messageContent);
 
   // If it's HTML (ReactQuill output), parse and clean it
   const div = document.createElement("div");
   div.innerHTML = messageContent;
 
-  const walk = (node) => {
+  const walk = (node, isTopLevel = false) => {
     let text = "";
 
-    node.childNodes.forEach((child) => {
+    node.childNodes.forEach((child, index) => {
       if (child.nodeType === 3) {
+        // Text node
         text += child.nodeValue;
       } else if (child.nodeType === 1) {
         const tag = child.nodeName;
 
         if (tag === "BR") {
           text += "\n";
-        } else if (["P", "DIV", "LI"].includes(tag)) {
-          text += walk(child) + "\n";
+        } else if (["P", "DIV"].includes(tag)) {
+          // Check if this is an empty paragraph (Quill uses <p><br></p> for blank lines)
+          const isEmpty = child.innerHTML === "<br>" || child.textContent.trim() === "";
+          if (isEmpty) {
+            text += "\n";
+          } else {
+            // Add content with double newline after for paragraph separation
+            const content = walk(child);
+            text += content + "\n\n";
+          }
+        } else if (tag === "LI") {
+          text += "• " + walk(child) + "\n";
+        } else if (["OL", "UL"].includes(tag)) {
+          // Process list - walk children (LI elements)
+          const listContent = walk(child);
+          text += "\n" + listContent;
         } else if (["STRONG", "B"].includes(tag)) {
           text += `*${walk(child)}*`;
         } else if (["EM", "I"].includes(tag)) {
           text += `_${walk(child)}_`;
         } else if (["S", "DEL"].includes(tag)) {
           text += `~${walk(child)}~`;
+        } else if (["U"].includes(tag)) {
+          // WhatsApp doesn't support underline, just pass through
+          text += walk(child);
+        } else if (["A"].includes(tag)) {
+          // Links - just use the text content
+          text += walk(child);
         } else {
           text += walk(child);
         }
@@ -137,7 +156,7 @@ export function convertToWhatsAppText(messageContent) {
     return text;
   };
 
-  const rawText = walk(div);
-  return fixMarkdown(rawText);
+  const rawText = walk(div, true);
+  return cleanText(rawText);
 }
 

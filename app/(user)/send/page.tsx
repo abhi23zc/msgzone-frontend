@@ -17,21 +17,22 @@ import {
   SendOutlined,
   DeleteOutlined,
   ClockCircleOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWhatsapp } from "@/context/WhatsappContext";
 import toast from "react-hot-toast";
-import PhoneUploaderInput from "./UploadContact";
+import PhoneUploaderInput, { ContactRow } from "./UploadContact";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import ProtectedRoute from "@/components/Protected";
-import { MessageCircleCodeIcon } from "lucide-react";
 import api from "@/services/api";
 const { TextArea } = Input;
 
 // Dynamically import ReactQuill with SSR disabled
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
 
 interface AttachmentType {
   file: File;
@@ -53,10 +54,60 @@ function Send() {
   let devices = user?.data?.user?.devices;
   const [attachments, setAttachments] = useState<AttachmentType[]>([]);
   const [messageContent, setMessageContent] = useState("");
+  const [sendingTemplate, setSendingTemplate] = useState(false);
+
+  // Template variables state
+  const [variableHeaders, setVariableHeaders] = useState<string[]>([]);
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const quillRef = useRef<any>(null);
+
+  const hasVariables = variableHeaders.length > 0 && contacts.length > 0;
+
+  // Handle contacts loaded from Excel
+  const handleContactsLoaded = (data: { headers: string[]; contacts: ContactRow[] }) => {
+    setVariableHeaders(data.headers);
+    setContacts(data.contacts);
+    setPreviewIndex(0);
+  };
+
+  // Clear variables when numbers are manually cleared
+  const handleNumbersChange = (val: string[]) => {
+    if (val.length === 0) {
+      setVariableHeaders([]);
+      setContacts([]);
+      setPreviewIndex(0);
+    }
+  };
+
+  // Insert variable into editor at cursor
+  const insertVariable = (varName: string) => {
+    const quill = quillRef.current?.getEditor?.();
+    if (quill) {
+      const range = quill.getSelection(true);
+      const text = `{{${varName}}}`;
+      quill.insertText(range.index, text);
+      quill.setSelection(range.index + text.length);
+    }
+  };
+
+  // Resolve template with a specific contact's data
+  const resolveTemplate = (template: string, contact: ContactRow): string => {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      return contact[key.toLowerCase()] || contact[key] || match;
+    });
+  };
+
+  // Get preview message (resolved for current contact)
+  const getPreviewContent = (): string => {
+    if (!hasVariables || contacts.length === 0) return messageContent;
+    const contact = contacts[previewIndex] || contacts[0];
+    return resolveTemplate(messageContent, contact);
+  };
 
   const onSchedule = async (values: any) => {
     try {
-      console.log("Schedule");
       const numbers = values.recipientNumber;
       if (numbers.length === 0) {
         toast.error("Please enter at least one recipient's WhatsApp number");
@@ -70,10 +121,8 @@ function Send() {
           deviceId: values.fromNumber,
           attachments: attachments,
         });
-        console.log(msg);
         if (msg) {
           toast.success("Message scheduled successfully");
-          // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
         }
@@ -86,10 +135,8 @@ function Send() {
           attachments: attachments,
           timer: values.timer || 2,
         });
-        console.log(msg);
         if (msg) {
           toast.success("Message scheduled successfully");
-          // Clear attachments after successful send
           setAttachments([]);
           form.resetFields(["message"]);
         }
@@ -101,45 +148,89 @@ function Send() {
 
   const onFinish = async (values: any) => {
     const numbers = values.recipientNumber;
-    // console.log(values?.schedule?.toISOString());
     values.message = convertToWhatsAppText(values.message);
+
     if (values?.schedule?.toISOString()) {
       onSchedule(values);
-    } else {
-      // console.log(numbers);
-      if (numbers.length === 0) {
-        toast.error("Please enter at least one recipient's WhatsApp number");
-        return;
-      }
-      if (numbers.length == 1) {
-        const msg: any = await sendMessage({
-          number: numbers[0] || "",
-          message: values.message,
-          deviceId: values.fromNumber,
-          attachments: attachments,
-        });
-        if (msg) {
-          toast.success("Message sent successfully");
-          // Clear attachments after successful send
-          setAttachments([]);
-          form.resetFields(["message"]);
-        }
-      } else {
-        const msg: any = await sendBulkMessage({
-          numbers: numbers,
-          message: values.message,
-          deviceId: values.fromNumber,
-          attachments: attachments,
-          timer: values.timer || 2,
-        });
-        if (msg) {
-          toast.success("Messages sent successfully");
+      return;
+    }
 
-          // Clear attachments after successful send
-          setAttachments([]);
-          form.resetFields(["message"]);
-        }
+    if (numbers.length === 0) {
+      toast.error("Please enter at least one recipient's WhatsApp number");
+      return;
+    }
+
+    // If template variables detected → use bulk template endpoint
+    if (hasVariables) {
+      await sendBulkTemplateMessage(values);
+      return;
+    }
+
+    // Standard send (no variables)
+    if (numbers.length == 1) {
+      const msg: any = await sendMessage({
+        number: numbers[0] || "",
+        message: values.message,
+        deviceId: values.fromNumber,
+        attachments: attachments,
+      });
+      if (msg) {
+        toast.success("Message sent successfully");
+        setAttachments([]);
+        form.resetFields(["message"]);
       }
+    } else {
+      const msg: any = await sendBulkMessage({
+        numbers: numbers,
+        message: values.message,
+        deviceId: values.fromNumber,
+        attachments: attachments,
+        timer: values.timer || 2,
+      });
+      if (msg) {
+        toast.success("Messages sent successfully");
+        setAttachments([]);
+        form.resetFields(["message"]);
+      }
+    }
+  };
+
+  // Send using the new bulk template endpoint
+  const sendBulkTemplateMessage = async (values: any) => {
+    try {
+      setSendingTemplate(true);
+      const formData = new FormData();
+      formData.append("deviceId", values.fromNumber);
+      formData.append("template", values.message);
+      formData.append("contacts", JSON.stringify(contacts));
+      formData.append("timer", values.timer || "2");
+
+      if (attachments && attachments.length > 0) {
+        attachments.forEach((attachment) => {
+          formData.append("attachments", attachment.file);
+          formData.append("captions", attachment.caption || "");
+        });
+      }
+
+      const res = await api.post("/wp/sendBulkTemplate", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res?.data?.status) {
+        toast.success(`Personalized messages sent to ${contacts.length} contacts`);
+        setAttachments([]);
+        setVariableHeaders([]);
+        setContacts([]);
+        setPreviewIndex(0);
+        form.resetFields(["message", "recipientNumber"]);
+        setMessageContent("");
+      } else {
+        toast.error(res?.data?.message || "Failed to send");
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to send template messages");
+    } finally {
+      setSendingTemplate(false);
     }
   };
 
@@ -152,9 +243,7 @@ function Send() {
     const isLessThan16MB = file.size / 1024 / 1024 < 5;
 
     if (!isValidFormat) {
-      message.error(
-        "Please upload files in JPG, PNG, PDF, MP3, or MP4 format only!"
-      );
+      message.error("Please upload files in JPG, PNG, PDF, MP3, or MP4 format only!");
       return false;
     }
     if (!isLessThan16MB) {
@@ -162,7 +251,6 @@ function Send() {
       return false;
     }
 
-    // Create preview URL for images
     const previewUrl = file.type.startsWith("image/")
       ? URL.createObjectURL(file)
       : undefined;
@@ -213,7 +301,6 @@ function Send() {
   const handleCode = async (value: boolean) => {
     try {
       const res = await api.get("/auth/enable91");
-
       if (!res?.data?.success) {
         toast.error("Something error occured");
       }
@@ -277,12 +364,14 @@ function Send() {
               rules={[
                 {
                   required: true,
-                  message:
-                    "Please enter at least one recipient's WhatsApp number",
+                  message: "Please enter at least one recipient's WhatsApp number",
                 },
               ]}
             >
-              <PhoneUploaderInput messageContent={messageContent} />
+              <PhoneUploaderInput
+                messageContent={messageContent}
+                onContactsLoaded={handleContactsLoaded}
+              />
             </Form.Item>
 
             <div className="flex gap-4">
@@ -291,18 +380,8 @@ function Send() {
                 download
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download Excel (XLSX) Demo
               </a>
@@ -312,33 +391,78 @@ function Send() {
                 download
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download TXT Demo
               </a>
             </div>
 
-            <Form.Item
-              label="Message"
-              name="message"
-            >
+            {/* Variable Chips - shown after multi-column Excel upload */}
+            {hasVariables && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-purple-700">
+                    Template Variables ({contacts.length} contacts loaded)
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">
+                  Click a variable to insert it into your message
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {variableHeaders.map((header) => (
+                    <button
+                      key={header}
+                      type="button"
+                      onClick={() => insertVariable(header)}
+                      className="px-3 py-1.5 text-sm font-medium bg-white border border-purple-300 text-purple-700 rounded-full hover:bg-purple-100 hover:border-purple-400 transition-all cursor-pointer shadow-sm"
+                    >
+                      {`{{${header}}}`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Mini data preview */}
+                <div className="mt-3 overflow-x-auto">
+                  <table className="text-xs w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-1 text-left text-gray-500 border-b border-purple-200">number</th>
+                        {variableHeaders.map((h) => (
+                          <th key={h} className="px-2 py-1 text-left text-gray-500 border-b border-purple-200">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contacts.slice(0, 3).map((contact, i) => (
+                        <tr key={i} className="hover:bg-white/50">
+                          <td className="px-2 py-1 text-gray-700 border-b border-purple-100">{contact.number}</td>
+                          {variableHeaders.map((h) => (
+                            <td key={h} className="px-2 py-1 text-gray-700 border-b border-purple-100 max-w-[120px] truncate">
+                              {contact[h] || "—"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {contacts.length > 3 && (
+                    <p className="text-xs text-gray-400 mt-1">...and {contacts.length - 3} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <Form.Item label="Message" name="message" className="mt-4">
               <ReactQuill
+                ref={quillRef}
                 theme="snow"
                 modules={modules}
                 className="h-32"
-                onChange={(content) => {
-                  console.log(content);
+                onChange={(content: string) => {
                   setMessageContent(content);
                   form.setFieldValue("message", content);
                 }}
@@ -347,23 +471,10 @@ function Send() {
 
             <div className="flex justify-end mt-10">
               <Link href={"/ai/template"} target="_blank">
-                <Button
-                  type="link"
-                  className="text-blue-600 hover:text-blue-700"
-                >
+                <Button type="link" className="text-blue-600 hover:text-blue-700">
                   <span className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     Use AI Template
                   </span>
@@ -409,9 +520,7 @@ function Send() {
                               preview={{ mask: "Preview" }}
                             />
                           ) : (
-                            <span className="text-2xl">
-                              {getFileIcon(attachment.file)}
-                            </span>
+                            <span className="text-2xl">{getFileIcon(attachment.file)}</span>
                           )}
                         </div>
 
@@ -431,9 +540,7 @@ function Send() {
                           <Input.TextArea
                             placeholder="Add a caption (optional)"
                             value={attachment.caption}
-                            onChange={(e) =>
-                              handleCaptionChange(index, e.target.value)
-                            }
+                            onChange={(e) => handleCaptionChange(index, e.target.value)}
                             className="w-full"
                             autoSize={{ minRows: 1, maxRows: 3 }}
                           />
@@ -449,14 +556,16 @@ function Send() {
               <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Button
-                    loading={loading}
+                    loading={loading || sendingTemplate}
                     type="primary"
                     htmlType="submit"
                     icon={<SendOutlined />}
                     size="large"
                     className="bg-blue-600 hover:bg-blue-700"
                   >
-                    Send Message
+                    {hasVariables
+                      ? `Send to ${contacts.length} contacts`
+                      : "Send Message"}
                   </Button>
                 </div>
 
@@ -488,6 +597,37 @@ function Send() {
           <h3 className="text-lg font-semibold mb-4 text-gray-800">
             WhatsApp Preview
           </h3>
+
+          {/* Per-contact navigation when variables exist */}
+          {hasVariables && contacts.length > 0 && (
+            <div className="flex items-center justify-between mb-3 px-2">
+              <button
+                type="button"
+                onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
+                disabled={previewIndex === 0}
+                className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <LeftOutlined className="text-gray-600" />
+              </button>
+              <span className="text-xs text-gray-500">
+                Contact {previewIndex + 1} of {contacts.length}
+                {contacts[previewIndex]?.number && (
+                  <span className="ml-1 text-gray-400">
+                    ({contacts[previewIndex].number})
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewIndex(Math.min(contacts.length - 1, previewIndex + 1))}
+                disabled={previewIndex === contacts.length - 1}
+                className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <RightOutlined className="text-gray-600" />
+              </button>
+            </div>
+          )}
+
           <div className="relative w-[280px] h-[560px] mx-auto">
             {/* Phone Frame */}
             <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
@@ -521,7 +661,7 @@ function Send() {
                     className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] max-h-full overflow-y-auto hide-scrollbar"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
-                    {RenderWhatsapp(messageContent)}
+                    {RenderWhatsapp(getPreviewContent())}
                   </div>
 
                   {/* Attachments */}
@@ -540,9 +680,7 @@ function Send() {
                             />
                           ) : (
                             <div className="flex items-center gap-2 p-2 bg-white rounded-lg">
-                              <span className="text-2xl">
-                                {getFileIcon(attachment.file)}
-                              </span>
+                              <span className="text-2xl">{getFileIcon(attachment.file)}</span>
                               <span className="text-sm text-gray-600 truncate">
                                 {attachment.file.name}
                               </span>
