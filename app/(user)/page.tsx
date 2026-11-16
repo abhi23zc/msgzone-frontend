@@ -2,7 +2,7 @@
 import CustomModal from "@/components/Modal";
 import ProtectedRoute from "@/components/Protected";
 import { useAuth } from "@/context/AuthContext";
-import { useWhatsapp } from "@/context/WhatsappContext";
+import { useWhatsapp, type DeviceDeletionResult } from "@/context/WhatsappContext";
 import { DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button, Modal, Table, Tooltip, Popconfirm, Avatar } from "antd";
 import {
@@ -22,8 +22,11 @@ import {
   Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FC } from "react";
+import { useEffect, useRef, useState, type FC } from "react";
 import toast from "react-hot-toast";
+import api from "@/services/api";
+import SendingSettings from '@/components/campaigns/SendingSettings';
+import { sendingConfig } from '@/services/campaigns';
 
 const Home: FC = () => {
   const { user, checkUser, getActivePlan, activePlan, getAllPlans, allPlans } = useAuth();
@@ -37,8 +40,52 @@ const Home: FC = () => {
   const [isModalOpen, setisModalOpen] = useState(false);
   const [modal, contextHolder] = Modal.useModal();
   const [deviceName, setdeviceName] = useState("");
-  const [deleteLoading, setdeleteLoading] = useState(false);
+  const [deletions, setDeletions] = useState<Record<string, DeviceDeletionResult>>({});
+  const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
+  const deletionRef = useRef(deletions);
+  deletionRef.current = deletions;
   const router = useRouter()
+
+  useEffect(() => {
+    let disposed = false;
+    const controller = new AbortController();
+    let polling = false;
+    const poll = async () => {
+      if (disposed || polling || document.visibilityState === 'hidden') return;
+      const stored: Record<string, DeviceDeletionResult> = {};
+      for (const device of user?.data?.user?.devices || []) {
+        if (device.lifecycle === 'deleting') stored[device.generation || device.deviceId] = device.deletion || { state: 'pending' };
+      }
+      const pending = { ...stored, ...deletionRef.current };
+      if (!Object.values(pending).some(item => item.state !== 'completed')) return;
+      polling = true;
+      try {
+        let refresh = false;
+        for (const [deviceId, operation] of Object.entries(pending)) {
+          if (operation.state === 'completed') continue;
+          if (!operation.deletionId) { refresh = true; continue; }
+          try {
+            const res = await api.get(`/wp/deletions/${operation.deletionId}`, { signal: controller.signal });
+            if (disposed) return;
+            const next: DeviceDeletionResult = res.data.data;
+            setDeletions(previous => ({ ...previous, [deviceId]: next }));
+            if (next.state === 'completed') {
+              refresh = true;
+              toast.success(next.remoteLogout === 'unconfirmed'
+                ? 'Device removed locally. WhatsApp unlinking was not confirmed.'
+                : 'Device deleted');
+            }
+          } catch {
+            if (!disposed) setDeletions(previous => ({ ...previous, [deviceId]: { ...operation, error: 'Status unavailable; checking again shortly' } }));
+          }
+        }
+        if (refresh && !disposed && !(await checkUser())) toast.error('Dashboard refresh failed; refresh the page to retry.');
+      } finally { polling = false; }
+    };
+    const interval = setInterval(poll, 2000);
+    document.addEventListener('visibilitychange', poll);
+    return () => { disposed = true; controller.abort(); clearInterval(interval); document.removeEventListener('visibilitychange', poll); };
+  }, [user]);
 
   useEffect(() => {
     getAllMessagesCount();
@@ -114,7 +161,7 @@ const Home: FC = () => {
   const summaryCards = [
     {
       title: "Total Devices",
-      value: user?.data?.user?.devices?.length || 0,
+      value: user?.data?.user?.devices?.filter((device: any) => deletions[device.generation || device.deviceId]?.state !== 'completed').length || 0,
       icon: <Smartphone className="w-6 h-6 text-white" />,
       gradient: "from-emerald-500 to-green-600",
     },
@@ -142,6 +189,7 @@ const Home: FC = () => {
 
   // Responsive Table Columns
   const deviceColumns = [
+    { title: 'Campaign limits', key: 'campaignLimits', render: (_: unknown, record: any) => !record.deleting ? <SendingSettings value={sendingConfig({ deviceId: record.deviceId })} limitsOnly /> : '—' },
     {
       title: "Device",
       dataIndex: "deviceId",
@@ -188,8 +236,15 @@ const Home: FC = () => {
       dataIndex: "status",
       key: "status",
       responsive: ["xs", "sm", "md", "lg", "xl"],
-      render: (status: string) =>
-        status === "connected" ? (
+      render: (status: string, record: any) =>
+        record.deleting ? (
+          <Tooltip title={record.deletion?.error || 'Stopping messaging and removing session credentials'}>
+            <span className="text-amber-700 font-semibold" role="status">
+              {record.deletion?.state === 'retrying' ? 'Cleanup retrying…' : 'Deleting…'}
+              {record.deletion?.error && <span className="block text-xs font-normal">{record.deletion.error}</span>}
+            </span>
+          </Tooltip>
+        ) : status === "connected" ? (
           <Tooltip title="Active & Connected">
             <span className="text-green-700 font-semibold flex items-center gap-1">
               <CheckCircle className="w-4 h-4" /> Active
@@ -210,7 +265,7 @@ const Home: FC = () => {
       render: function ActionsCell(_: any, record: any) {
         return (
           <div className="space-y-2">
-            {record.status !== "connected" && (
+            {record.status !== "connected" && !record.deleting && (
               <Button
                 type="primary"
                 icon={<ReloadOutlined className="w-4 h-4" />}
@@ -224,8 +279,8 @@ const Home: FC = () => {
               </Button>
             )}
             <Popconfirm
-              title="Are you sure you want to delete this device?"
-              onConfirm={() => handleDeleteDevice(record.deviceId)}
+              title="Delete device and cancel its remaining scheduled and bulk messages?"
+              onConfirm={() => handleDeleteDevice(record.deviceId, record.key)}
               okText="Yes"
               cancelText="No"
               okButtonProps={{
@@ -237,7 +292,8 @@ const Home: FC = () => {
               <Button
                 danger
                 type="primary"
-                loading={deleteLoading}
+                loading={!!submitting[record.key]}
+                disabled={record.deleting}
                 icon={<DeleteOutlined className="w-4 h-4" />}
                 className="bg-gradient-to-r from-red-500 to-pink-500 border-none shadow-md hover:from-red-600 hover:to-pink-600 transition-all duration-200 font-semibold flex items-center"
               >
@@ -251,8 +307,10 @@ const Home: FC = () => {
   ];
 
   const deviceData =
-    user?.data?.user?.devices?.map((device: any, idx: any) => ({
-      key: idx,
+    user?.data?.user?.devices?.filter((device: any) => deletions[device.generation || device.deviceId]?.state !== 'completed').map((device: any) => ({
+      key: device.generation || device.deviceId,
+      deleting: device.lifecycle === 'deleting' || !!deletions[device.generation || device.deviceId] || !!submitting[device.generation || device.deviceId],
+      deletion: deletions[device.generation || device.deviceId] || device.deletion,
       number: device?.number || "N/A",
       deviceId: device?.deviceId,
       sent: device?.sent || 0,
@@ -260,14 +318,19 @@ const Home: FC = () => {
       status: device?.status,
     })) || [];
 
-  async function handleDeleteDevice(deviceId: string) {
+  async function handleDeleteDevice(deviceId: string, key: string) {
+    setSubmitting(previous => ({ ...previous, [key]: true }));
     try {
-      setdeleteLoading(true);
-      await deleteDevice(deviceId);
+      const result = await deleteDevice(deviceId);
+      setDeletions(previous => ({ ...previous, [key]: result }));
+      if (result.state === 'completed') await checkUser();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      toast.error(error?.response?.data?.message || error.message || 'Could not delete device');
+      // A failed response may follow a committed deletion fence. Recover server state.
+      await checkUser();
+    } finally {
+      setSubmitting(previous => ({ ...previous, [key]: false }));
     }
-    setdeleteLoading(false);
   }
 
   return (
@@ -370,6 +433,7 @@ const Home: FC = () => {
               icon={<CirclePlus className="w-4 h-4" />}
               className="border-none shadow-md  transition-all duration-200 font-semibold flex items-center"
               onClick={() => {
+                setdeviceName('');
                 handleSubmit();
               }}
             >

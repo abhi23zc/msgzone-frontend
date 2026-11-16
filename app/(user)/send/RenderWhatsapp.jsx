@@ -40,7 +40,7 @@ export function RenderWhatsapp(messageContent) {
   return (
     <div
       className="text-sm text-gray-800"
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
     />
   );
 }

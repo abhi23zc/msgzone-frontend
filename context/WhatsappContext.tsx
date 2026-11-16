@@ -14,6 +14,13 @@ interface AttachmentType {
   previewUrl?: string;
 }
 
+export interface DeviceDeletionResult {
+  deletionId?: string;
+  state: 'pending' | 'retrying' | 'completed';
+  error?: string;
+  remoteLogout?: 'confirmed' | 'unconfirmed';
+}
+
 interface WhatsappContextProps {
   loading: boolean;
   startSession: (deviceId: string | "") => Promise<void>;
@@ -26,6 +33,7 @@ interface WhatsappContextProps {
     number: string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
   sendBulkMessage: ({
@@ -39,6 +47,7 @@ interface WhatsappContextProps {
     timer:string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
 
@@ -53,6 +62,7 @@ interface WhatsappContextProps {
     schedule: string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
   sendScheduleBulk :({
@@ -68,6 +78,7 @@ interface WhatsappContextProps {
     schedule: string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => Promise<void>;
   getAllMessages: (limit:number, page:number, dateFilters:any, filters:any) => Promise<void>;
@@ -80,7 +91,7 @@ interface WhatsappContextProps {
   todayMessages: any[];
   error: string | "";
   TimeoutInterval: any;
-  deleteDevice:(deviceId:string) => Promise<void>
+  deleteDevice:(deviceId:string) => Promise<DeviceDeletionResult>
 }
 
 const WhatsappContext = createContext<WhatsappContextProps>({
@@ -100,7 +111,7 @@ const WhatsappContext = createContext<WhatsappContextProps>({
   todayMessages: [],
   error: "",
   TimeoutInterval: null,
-  deleteDevice: async () =>{}
+  deleteDevice: async () => ({ state: "completed" })
 });
 
 export const WhatsappProvider = ({
@@ -180,31 +191,23 @@ export const WhatsappProvider = ({
     }
   };
 
-  const deleteDevice = async (deviceId: string) => {
-    try {
-      setError("");
-      const res = await api.post("/wp/delete", { deviceId });
-      if (res?.data?.status) {
-        await checkUser();
-        return res?.data?.data;
-      }
-      console.log(res?.data)
-    } catch (error:any) {
-      setLoading(false);
-      toast.error(error?.response?.data?.message || "Something went wrong");
-      return null;
-    }
+  const deleteDevice = async (deviceId: string): Promise<DeviceDeletionResult> => {
+    const res = await api.post('/wp/delete', { deviceId });
+    if (!res.data?.status || !res.data?.data) throw new Error('Could not record device deletion');
+    return res.data.data;
   };
 
   const sendMessage = async ({
     number,
     message,
     deviceId,
+    defaultCountry = "IN",
     attachments = [],
   }: {
     number: string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => {
     try {
@@ -216,6 +219,7 @@ export const WhatsappProvider = ({
       formData.append("number", number);
       formData.append("message", message);
       formData.append("deviceId", deviceId);
+      formData.append("defaultCountry", defaultCountry);
       
       // Add attachments if any
       if (attachments && attachments.length > 0) {
@@ -248,12 +252,14 @@ export const WhatsappProvider = ({
     schedule,
     message,
     deviceId,
+    defaultCountry = "IN",
     attachments = [],
   }: {
     number: string;
     schedule:string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => {
     try {
@@ -265,6 +271,7 @@ export const WhatsappProvider = ({
       formData.append("number", number);
       formData.append("message", message);
       formData.append("deviceId", deviceId);
+      formData.append("defaultCountry", defaultCountry);
       formData.append("schedule", schedule);
       
       // Add attachments if any
@@ -298,12 +305,14 @@ export const WhatsappProvider = ({
     message,
     deviceId,
     timer,
+    defaultCountry = "IN",
     attachments = [],
   }: {
     numbers: [];
     timer:string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => {
     try {
@@ -317,6 +326,7 @@ export const WhatsappProvider = ({
       formData.append("numbers", JSON.stringify(numbers));
       formData.append("message", message);
       formData.append("deviceId", deviceId);
+      formData.append("defaultCountry", defaultCountry);
       formData.append("timer", timer);
       
       // Add attachments if any
@@ -352,6 +362,7 @@ export const WhatsappProvider = ({
     schedule,
     message,
     deviceId,
+    defaultCountry = "IN",
     attachments = [],
   }: {
     numbers: string;
@@ -359,6 +370,7 @@ export const WhatsappProvider = ({
     schedule:string;
     message: string;
     deviceId: string;
+    defaultCountry?: string;
     attachments?: AttachmentType[];
   }) => {
     try {
@@ -370,6 +382,7 @@ export const WhatsappProvider = ({
       formData.append("numbers", JSON.stringify(numbers));
       formData.append("message", message);
       formData.append("deviceId", deviceId);
+      formData.append("defaultCountry", defaultCountry);
       formData.append("schedule", schedule);
       formData.append("timer", timer);
       

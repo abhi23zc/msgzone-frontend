@@ -28,7 +28,7 @@ interface AuthContextType {
     password: string | null;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  checkUser: () => Promise<void>;
+  checkUser: () => Promise<boolean>;
   error: null | string;
   sendOtp: (email: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
@@ -64,7 +64,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: async () => {},
   register: async () => {},
-  checkUser: async () => {},
+  checkUser: async () => false,
   sendOtp: async () => {},
   verifyOtp: async () => {},
   verifyLoginOtp: async () => {},
@@ -112,10 +112,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
       console.log("Data", res.data);
       setUser(res.data);
-      // console.log("Data", res.data);
+      return true;
     } catch (error) {
       console.log("Error checking user:", error);
-      setUser(null);
+      const status = (error as AxiosError).response?.status;
+      if (status === 401 || status === 404) setUser(null);
+      return false;
     } finally {
       setLoading(false);
     }

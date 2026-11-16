@@ -2,6 +2,11 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+Development writes generated files to `.next-dev`; production builds and
+`npm start` use `.next`. This allows a production build while development is
+running without overwriting its vendor chunks. Avoid setting
+`NEXT_BUILD_DIST_DIR` to the same directory for both processes.
+
 First, run the development server:
 
 ```bash

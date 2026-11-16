@@ -16,6 +16,7 @@ interface Message {
   status: string;
   sendThrough: string;
   createdAt: string;
+  errorMessage?: string;
 }
 
 interface DateRange {
@@ -58,17 +59,39 @@ const columns = [
     render: (status: string) => (
       <Tag
         color={
-          status === "delivered"
+          status === "delivered" || status === "read"
             ? "success"
-            : status === "scheduled"
-            ? "processing"
-            : "error"
+            : status === "sent"
+              ? "blue"
+              : status === "pending" || status === "scheduled"
+                ? "processing"
+                : status === "unknown"
+                  ? "warning"
+                  : "error"
         }
         className="rounded-full px-3"
       >
         {status}
       </Tag>
     ),
+  },
+  {
+    title: "Error",
+    dataIndex: "errorMessage",
+    key: "error",
+    render: (errorMessage: string | undefined, record: Message) => {
+      if (record.status === "error" && errorMessage) {
+        return (
+          <span
+            className="text-red-600 text-sm font-medium"
+            title={errorMessage}
+          >
+            {friendlyError(errorMessage)}
+          </span>
+        );
+      }
+      return <span className="text-gray-400 text-sm">—</span>;
+    },
   },
   {
     title: "Mode",
@@ -82,6 +105,27 @@ const columns = [
     render: (date: string) => new Date(date).toLocaleString(),
   },
 ];
+
+function friendlyError(errorMessage?: string) {
+  if (!errorMessage) return "—";
+  const msg = errorMessage.toLowerCase();
+  if (msg.includes("cannot read properties") || msg.includes("undefined")) {
+    return "The recipient record is missing required information. Please check the contact and try again.";
+  }
+  if (msg.includes("quota") || msg.includes("message quota exhausted")) {
+    return "Your message quota is exhausted. Upgrade your plan or wait for the next billing cycle.";
+  }
+  if (msg.includes("disconnected") || msg.includes("device disconnected")) {
+    return "The WhatsApp device disconnected. Reconnect the device and resume the campaign.";
+  }
+  if (msg.includes("device limit") || msg.includes("daily cap") || msg.includes("rate limit")) {
+    return "The device hit its daily cap or rate limit. It will resume when the limit resets.";
+  }
+  if (msg.includes("duplicate recipient")) {
+    return "This phone number already exists in the campaign.";
+  }
+  return errorMessage;
+}
 
 function MessageReports() {
   const { allMessages, getAllMessages } = useWhatsapp();
@@ -243,7 +287,11 @@ function MessageReports() {
               className="w-full"
               options={[
                 { value: "all", label: "All statuses" },
+                { value: "sent", label: "Sent" },
                 { value: "delivered", label: "Delivered" },
+                { value: "read", label: "Read" },
+                { value: "pending", label: "Pending" },
+                { value: "unknown", label: "Unknown outcome" },
                 { value: "error", label: "Failed" },
               ]}
             />
@@ -284,7 +332,7 @@ function MessageReports() {
           pagination={{
             current: currentPage,
             pageSize: pageSize,
-            total: totalMessages || 50,
+            total: totalMessages,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `Total ${total} items`,

@@ -38,6 +38,7 @@ function getItem(
 
 const items: MenuItem[] = [
   getItem("Dashboard", "1", <PieChartOutlined />),
+  getItem("Campaigns", "8", <MessageOutlined />),
   getItem("Send Message", "2", <MessageOutlined />),
   getItem("Message Report", "3", <BookOutlined />),
   // getItem("Templates", "4", <BookOutlined />),
@@ -176,13 +177,14 @@ const Sidebar: React.FC = () => {
         <div className="px-4">
           <Menu
             mode="inline"
-            defaultSelectedKeys={["1"]}
+            selectedKeys={[pathname.startsWith('/campaigns') ? '8' : pathname.startsWith('/send') ? '2' : pathname.startsWith('/reports') ? '3' : pathname.startsWith('/api') ? '6' : pathname.startsWith('/plan') ? '5' : pathname.startsWith('/help') ? '7' : '1']}
             style={{
               background: "transparent",
               border: "none",
             }}
             className="custom-menu"
             onClick={({ key }) => {
+              if (key === "8") router.push("/campaigns");
               if (key === "1") router.push("/");
               if (key === "2") router.push("/send");
               if (key === "3") router.push("/reports");

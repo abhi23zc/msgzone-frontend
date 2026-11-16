@@ -68,7 +68,7 @@ function Send() {
   // Handle contacts loaded from Excel
   const handleContactsLoaded = (data: { headers: string[]; contacts: ContactRow[] }) => {
     setVariableHeaders(data.headers);
-    setContacts(data.contacts);
+    setContacts(previous => [...previous.filter(c => !data.contacts.some(n => n.number === c.number)), ...data.contacts]);
     setPreviewIndex(0);
   };
 
@@ -119,6 +119,7 @@ function Send() {
           schedule: values?.schedule?.toISOString(),
           message: values.message,
           deviceId: values.fromNumber,
+          defaultCountry: values.defaultCountry || "IN",
           attachments: attachments,
         });
         if (msg) {
@@ -132,6 +133,7 @@ function Send() {
           schedule: values?.schedule?.toISOString(),
           message: values.message,
           deviceId: values.fromNumber,
+          defaultCountry: values.defaultCountry || "IN",
           attachments: attachments,
           timer: values.timer || 2,
         });
@@ -149,6 +151,12 @@ function Send() {
   const onFinish = async (values: any) => {
     const numbers = values.recipientNumber;
     values.message = convertToWhatsAppText(values.message);
+    if (!values.message.trim() && !attachments.length) { toast.error("Enter a message or add an attachment"); return; }
+
+    if (hasVariables) {
+      await sendBulkTemplateMessage(values);
+      return;
+    }
 
     if (values?.schedule?.toISOString()) {
       onSchedule(values);
@@ -160,22 +168,17 @@ function Send() {
       return;
     }
 
-    // If template variables detected → use bulk template endpoint
-    if (hasVariables) {
-      await sendBulkTemplateMessage(values);
-      return;
-    }
-
     // Standard send (no variables)
     if (numbers.length == 1) {
       const msg: any = await sendMessage({
         number: numbers[0] || "",
         message: values.message,
         deviceId: values.fromNumber,
+          defaultCountry: values.defaultCountry || "IN",
         attachments: attachments,
       });
       if (msg) {
-        toast.success("Message sent successfully");
+        toast.success("Message queued");
         setAttachments([]);
         form.resetFields(["message"]);
       }
@@ -184,11 +187,12 @@ function Send() {
         numbers: numbers,
         message: values.message,
         deviceId: values.fromNumber,
+          defaultCountry: values.defaultCountry || "IN",
         attachments: attachments,
         timer: values.timer || 2,
       });
       if (msg) {
-        toast.success("Messages sent successfully");
+        toast.success("Messages queued");
         setAttachments([]);
         form.resetFields(["message"]);
       }
@@ -201,8 +205,10 @@ function Send() {
       setSendingTemplate(true);
       const formData = new FormData();
       formData.append("deviceId", values.fromNumber);
+      formData.append("defaultCountry", values.defaultCountry || "IN");
       formData.append("template", values.message);
-      formData.append("contacts", JSON.stringify(contacts));
+      formData.append("contacts", JSON.stringify(values.recipientNumber.map((number: string) => contacts.find(c => c.number === number) || {number})));
+      if (values.schedule) formData.append("schedule", values.schedule.toISOString());
       formData.append("timer", values.timer || "2");
 
       if (attachments && attachments.length > 0) {
@@ -217,7 +223,7 @@ function Send() {
       });
 
       if (res?.data?.status) {
-        toast.success(`Personalized messages sent to ${contacts.length} contacts`);
+        toast.success(values.schedule ? "Personalized messages scheduled" : "Personalized messages queued");
         setAttachments([]);
         setVariableHeaders([]);
         setContacts([]);
@@ -298,23 +304,11 @@ function Send() {
     ],
   };
 
-  const handleCode = async (value: boolean) => {
-    try {
-      const res = await api.get("/auth/enable91");
-      if (!res?.data?.success) {
-        toast.error("Something error occured");
-      }
-    } catch (e) {
-      toast.error("Something error occured");
-      console.log(e);
-    }
-  };
-
   return (
-    <section className="p-10 m-3 w-full ">
+    <section className="p-4 md:p-8 w-full min-w-0">
       <div className="flex flex-col lg:flex-row gap-6 ">
         {/* Left Column - Form */}
-        <div className="flex-1 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
+        <div className="flex-1 min-w-0 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
           <h1 className="text-2xl font-semibold mb-6 text-gray-800">
             Send Message
           </h1>
@@ -336,26 +330,14 @@ function Send() {
                   (device: any, index: number) =>
                     device.status === "connected" && (
                       <Select.Option key={index} value={device.deviceId}>
-                        {device.deviceName}
+                        {`${device.deviceId}${device.number ? " · +" + device.number : ""}`}
                       </Select.Option>
                     )
                 )}
               </Select>
             </Form.Item>
-            <Form.Item
-              label="Enable 91"
-              name="enable91"
-              valuePropName="checked"
-              initialValue={user?.data?.user?.enableCode ?? false}
-            >
-              <Switch
-                onChange={(e) => {
-                  handleCode(e);
-                }}
-                checkedChildren="91 Enabled"
-                unCheckedChildren="91 Disabled"
-                className="bg-gray-300 w-10 "
-              />
+            <Form.Item label="Default phone country" name="defaultCountry" initialValue="IN">
+              <Select options={[{value:'IN',label:'India (+91)'},{value:'US',label:'United States (+1)'},{value:'GB',label:'United Kingdom (+44)'},{value:'AE',label:'United Arab Emirates (+971)'}]} />
             </Form.Item>
 
             <Form.Item
@@ -371,32 +353,9 @@ function Send() {
               <PhoneUploaderInput
                 messageContent={messageContent}
                 onContactsLoaded={handleContactsLoaded}
+                onChange={handleNumbersChange}
               />
             </Form.Item>
-
-            <div className="flex gap-4">
-              <a
-                href="/Msgzone_Demo_Sheet.xlsx"
-                download
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Excel (XLSX) Demo
-              </a>
-
-              <a
-                href="/contacts.txt"
-                download
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download TXT Demo
-              </a>
-            </div>
 
             {/* Variable Chips - shown after multi-column Excel upload */}
             {hasVariables && (
@@ -574,7 +533,7 @@ function Send() {
                     <DatePicker
                       showTime
                       format="YYYY-MM-DD HH:mm"
-                      className="h-10 min-w-[240px]"
+                      className="h-10 w-full"
                       placeholder="Schedule Message"
                     />
                   </Form.Item>
@@ -593,7 +552,7 @@ function Send() {
         </div>
 
         {/* Right Column - WhatsApp Preview */}
-        <div className="lg:w-[400px] bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
+        <div className="w-full lg:w-[320px] lg:shrink-0 bg-white p-6 shadow-lg border border-gray-100 rounded-xl">
           <h3 className="text-lg font-semibold mb-4 text-gray-800">
             WhatsApp Preview
           </h3>
@@ -628,7 +587,7 @@ function Send() {
             </div>
           )}
 
-          <div className="relative w-[280px] h-[560px] mx-auto">
+          <div className="relative w-full max-w-[280px] h-[560px] mx-auto">
             {/* Phone Frame */}
             <div className="absolute inset-0 bg-gray-900 rounded-[40px] shadow-xl">
               {/* Notch */}

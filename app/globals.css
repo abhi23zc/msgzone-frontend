@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap");
 @import 'antd/dist/reset.css';
 @import 'react-quill/dist/quill.snow.css';
 
@@ -23,7 +22,7 @@ body {
 }
 
 * {
-  font-family: Jost, sans-serif !important;
+  font-family: var(--font-jost), Jost, sans-serif !important;
   box-sizing: border-box;
 }
 
